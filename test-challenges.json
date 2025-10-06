@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "exportDate": "2025-10-05",
+  "challenges": [
+    {
+      "title": "Test Challenge 1",
+      "description": "This is a test challenge for import functionality",
+      "persona": "Test User, a developer testing the import feature",
+      "painPoint": "Needs to verify that JSON import works correctly",
+      "topic": "Technology"
+    },
+    {
+      "title": "Test Challenge 2",
+      "description": "Another test challenge with different topic",
+      "persona": "Jane, a facilitator preparing for a workshop",
+      "painPoint": "Wants to quickly load multiple challenges",
+      "topic": "Education"
+    }
+  ]
+}

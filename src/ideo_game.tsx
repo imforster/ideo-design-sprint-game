@@ -13,6 +13,7 @@ const IDEOGame = () => {
   const [score, setScore] = useState(0);
   const [timer, setTimer] = useState(180);
   const [timerActive, setTimerActive] = useState(false);
+  const [timerDuration, setTimerDuration] = useState(180);
   const [showSettings, setShowSettings] = useState(false);
   const [showShare, setShowShare] = useState(false);
   

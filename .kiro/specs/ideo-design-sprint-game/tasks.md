@@ -45,27 +45,27 @@
   - Ensure imported challenges are enabled by default
   - _Requirements: 16.14_
 
-- [ ] 2. Implement timer customization in facilitator settings
+- [x] 2. Implement timer customization in facilitator settings
   - Add timerDuration state variable with default 180
   - Create "Timer Settings" section in the settings modal (same modal as challenge management)
   - Position timer settings section below or above challenge selection
   - _Requirements: 15.1, 15.2, 15.7_
 
-- [ ] 2.1 Add timer preset buttons in settings
+- [x] 2.1 Add timer preset buttons in settings
   - Create preset buttons for 60s, 180s, 300s, 600s in settings modal
   - Implement click handlers to set timerDuration
   - Add visual indication of selected preset (highlighted button)
   - Display current timer duration value
   - _Requirements: 15.3_
 
-- [ ] 2.2 Add custom timer input in settings
+- [x] 2.2 Add custom timer input in settings
   - Add number input field for custom duration in settings modal
   - Implement validation for 30-1800 second range
   - Display error message for invalid input
   - Update preset button selection when custom value is entered
   - _Requirements: 15.4, 15.5, 15.6_
 
-- [ ] 2.3 Integrate custom timer with Ideate phase
+- [x] 2.3 Integrate custom timer with Ideate phase
   - Update startGame to initialize timer with timerDuration from settings
   - Update timer display in Ideate phase to show MM:SS format
   - Add note in settings modal about session-only persistence
@@ -74,7 +74,7 @@
 
 - [ ] 3. Implement image upload for prototypes
   - Add prototypeImages state variable as array
-  - Add file input with accept="image/*" in Prototype phase
+  - Add file input with accept="image/\*" in Prototype phase
   - Style upload button with icon
   - _Requirements: 14.1, 14.2_
 
@@ -220,7 +220,7 @@
   - Ensure app doesn't crash on invalid input
   - _Requirements: All validation requirements_
 
-- [ ]* 10. Update documentation
+- [ ]\* 10. Update documentation
   - Update README.md with new features
   - Update DOCUMENTATION.md with usage instructions
   - Update FACILITATOR_GUIDE.md with new capabilities

@@ -1,38 +1,38 @@
 # Implementation Plan
 
-- [ ] 1. Add challenge topic field and categorization
+- [x] 1. Add challenge topic field and categorization
   - Add topic field to Challenge interface in both index.html and src/ideo_game.tsx
   - Update defaultChallenges array to include topic for each challenge
   - Add TOPICS constant array with predefined topic options
   - _Requirements: 16.1, 16.2, 16.3, 16.4_
 
-- [ ] 1.1 Update challenge form with topic dropdown
+- [x] 1.1 Update challenge form with topic dropdown
   - Add topic dropdown to newChallenge form in settings modal
   - Implement conditional custom topic input when "Custom" is selected
   - Update addCustomChallenge validation to require topic field
   - _Requirements: 16.1, 16.2, 16.3, 16.4_
 
-- [ ] 1.2 Display topic badges on challenges
+- [x] 1.2 Display topic badges on challenges
   - Create topic badge component with color coding
   - Display topic badges in custom challenges list
   - Add topic to challenge display during game
   - _Requirements: 16.5, 16.13_
 
-- [ ] 1.3 Implement challenge selection in settings
+- [x] 1.3 Implement challenge selection in settings
   - Add enabledChallenges state variable as Set of challenge titles
   - Initialize with all challenges enabled by default
   - Create "Challenge Selection" section in settings modal
   - Display all challenges (default + custom) with checkboxes
   - _Requirements: 16.6, 16.7, 16.8_
 
-- [ ] 1.4 Implement challenge enable/disable functionality
+- [x] 1.4 Implement challenge enable/disable functionality
   - Create toggleChallengeEnabled function to add/remove from Set
   - Add checkbox change handlers for each challenge
   - Add "Select All" and "Deselect All" buttons
   - Display topic badges next to each challenge in selection list
   - _Requirements: 16.7, 16.9_
 
-- [ ] 1.5 Validate and filter challenges on game start
+- [x] 1.5 Validate and filter challenges on game start
   - Create getEnabledChallenges function to filter by enabled Set
   - Update startGame to only select from enabled challenges
   - Add validation to ensure at least one challenge is enabled
@@ -40,7 +40,7 @@
   - Disable "Start Design Sprint" button when no challenges enabled
   - _Requirements: 16.10, 16.11, 16.12_
 
-- [ ] 1.6 Handle enabled state for imported challenges
+- [x] 1.6 Handle enabled state for imported challenges
   - When importing challenges, add their titles to enabledChallenges Set
   - Ensure imported challenges are enabled by default
   - _Requirements: 16.14_

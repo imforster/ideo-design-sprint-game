@@ -197,7 +197,7 @@
   - Display confirmation message
   - _Requirements: 13.5_
 
-- [ ] 7. Update all export functions to include new data
+- [x] 7. Update all export functions to include new data
   - Update downloadResults to include topic and image notes
   - Update copyToClipboard to include topic
   - Update generateShareableResults to include all new fields

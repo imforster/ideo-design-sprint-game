@@ -7,9 +7,12 @@
 3. [Game Modes](#game-modes)
 4. [The 5 Design Phases](#the-5-design-phases)
 5. [Features Guide](#features-guide)
-6. [Best Practices](#best-practices)
-7. [Troubleshooting](#troubleshooting)
-8. [FAQ](#faq)
+6. [Challenge Management](#challenge-management)
+7. [Export Options](#export-options)
+8. [Timer Customization](#timer-customization)
+9. [Best Practices](#best-practices)
+10. [Troubleshooting](#troubleshooting)
+11. [FAQ](#faq)
 
 ---
 
@@ -381,6 +384,24 @@ mobile order shelf, and makes it to class on time.
 - Think low-fidelity
 - Plan quick validation
 
+**Image Upload (Optional):**
+
+You can now add visual elements to your prototype:
+
+1. Click "Upload Image" button
+2. Select image files (PNG, JPG, JPEG, GIF, SVG)
+3. Maximum 3 images, each under 5MB
+4. Images appear as thumbnails
+5. Remove images with X button
+6. Images included in PDF exports
+
+**When to use images:**
+- Sketches of interface designs
+- Storyboard sequences
+- Physical mockup photos
+- Wireframe screenshots
+- User journey diagrams
+
 **Scoring:** 30 points for detailed prototype
 
 ---
@@ -627,6 +648,435 @@ Play your own: [Share link if hosted]
 
 ---
 
+## Challenge Management
+
+### Creating Custom Challenges
+
+**Access Settings:**
+1. Click Settings icon (⚙️) on intro screen
+2. View existing challenges
+3. Click "Add Challenge" button
+
+**Required Fields:**
+
+- **Challenge Title:** Short, descriptive name (e.g., "Hospital Patient Experience")
+- **Description:** Problem context in 2-3 sentences
+- **User Persona:** Specific person affected by the problem
+- **Pain Point:** Core frustration or unmet need
+- **Topic:** Category from dropdown or custom topic
+
+**Available Topics:**
+- Education
+- Business
+- Healthcare
+- Technology
+- Sustainability
+- Social Impact
+- Product Design
+- Service Design
+- Custom (enter your own)
+
+**Example Custom Challenge:**
+
+```
+Title: Remote Team Onboarding
+
+Description: New employees joining remote-first companies
+struggle to build relationships and understand company
+culture without in-person interactions.
+
+Persona: Jamie, a 28-year-old software developer starting
+their first remote job after working in offices for 5 years
+
+Pain Point: Feels isolated and unsure how to connect with
+teammates, missing the casual conversations that build
+rapport in physical offices
+
+Topic: Business
+```
+
+**Tips for Good Challenges:**
+- Be specific about the user
+- Focus on real pain points
+- Avoid suggesting solutions
+- Make it relatable
+- Keep scope manageable
+
+---
+
+### Challenge Selection
+
+**Enable/Disable Challenges:**
+
+Control which challenges appear in your sprints:
+
+1. Open Settings modal
+2. Scroll to "Challenge Selection" section
+3. See all available challenges with topic badges
+4. Check/uncheck boxes to enable/disable
+5. Use "Select All" or "Deselect All" for bulk actions
+
+**Why Use This:**
+- Focus on specific topics for workshops
+- Remove irrelevant challenges
+- Create themed sessions
+- Test new challenges individually
+- Curate experience for audience
+
+**Requirements:**
+- At least one challenge must be enabled
+- "Start Design Sprint" button disabled if none selected
+- Selection persists during browser session
+- Resets when browser is closed
+
+**Example Use Cases:**
+
+*Healthcare Workshop:*
+- Enable only Healthcare and Social Impact challenges
+- Disable Business and Technology challenges
+- Focused learning experience
+
+*Testing New Challenges:*
+- Disable all default challenges
+- Enable only your new custom challenge
+- Test before sharing with team
+
+---
+
+### Challenge Import/Export
+
+**Export Your Challenges:**
+
+Share your custom challenge sets with colleagues:
+
+1. Open Settings modal
+2. Click "Export Challenges" button
+3. JSON file downloads automatically
+4. Filename: `ideo-challenges-[timestamp].json`
+5. Share file via email, Slack, or file sharing
+
+**What's Included:**
+- All custom challenges you've created
+- Challenge topics
+- Version information
+- Export date
+- Proper JSON schema
+
+**Import Challenge Sets:**
+
+Load pre-made challenge packs:
+
+1. Open Settings modal
+2. Click "Import Challenges" button
+3. Select JSON file from your computer
+4. Preview modal shows challenges to import
+5. Review list and check for duplicates
+6. Click "Import All" to confirm
+7. Challenges added to your custom list
+
+**Import Preview Shows:**
+- Number of challenges in file
+- Challenge titles with topics
+- Duplicate warnings (matching titles)
+- Option to cancel before importing
+
+**Duplicate Handling:**
+- Challenges with matching titles are skipped
+- Summary shows what was imported vs skipped
+- Prevents accidental duplicates
+- Original challenges preserved
+
+**JSON Schema:**
+
+```json
+{
+  "version": "1.0",
+  "exportDate": "2025-10-05T12:00:00Z",
+  "challenges": [
+    {
+      "title": "Challenge Title",
+      "description": "Detailed problem description",
+      "persona": "User persona details",
+      "painPoint": "Main pain point or frustration",
+      "topic": "Education"
+    },
+    {
+      "title": "Another Challenge",
+      "description": "Problem context",
+      "persona": "Specific user",
+      "painPoint": "Core need",
+      "topic": "Healthcare"
+    }
+  ]
+}
+```
+
+**Creating Challenge Packs:**
+
+Build themed collections:
+
+*Startup Challenges Pack:*
+- Product-market fit problems
+- User acquisition challenges
+- Scaling issues
+- Team collaboration problems
+
+*Education Challenges Pack:*
+- Student engagement
+- Remote learning
+- Assessment methods
+- Accessibility issues
+
+*Healthcare Challenges Pack:*
+- Patient experience
+- Provider workflows
+- Health equity
+- Technology adoption
+
+**Validation:**
+- File must be valid JSON
+- Must include version and challenges array
+- Each challenge needs all required fields
+- Clear error messages if validation fails
+
+---
+
+## Export Options
+
+### Download Text Results
+
+**Basic text export for documentation:**
+
+1. Complete all 5 phases
+2. Click "Download Results" button
+3. Text file saves to Downloads folder
+4. Filename: `design-sprint-[team-name]-[timestamp].txt`
+
+**Contents:**
+- Team/solo identification
+- Challenge title and topic
+- Date and score
+- HMW statement
+- All ideas (numbered, with attribution)
+- Top 3 selected ideas
+- Prototype description
+- Note about images (if uploaded)
+- Iteration notes
+
+**Best For:**
+- Quick documentation
+- Email attachments
+- Plain text archives
+- Copy-paste into other tools
+
+---
+
+### PDF Export
+
+**Professional formatted reports:**
+
+1. Complete all 5 phases
+2. Click "Download PDF" button
+3. PDF generates and downloads
+4. Filename: `design-sprint-[team-name]-[timestamp].pdf`
+
+**PDF Features:**
+- Professional header with title and date
+- Challenge information with topic badge
+- Team details (if applicable)
+- Formatted sections with visual hierarchy
+- Numbered idea lists
+- Top 3 ideas with emphasis
+- Prototype section with embedded images
+- Iteration notes
+- Footer with score and timestamp
+
+**Image Handling:**
+- Uploaded images embedded in PDF
+- Maintains aspect ratio
+- Proper sizing (max width 170mm)
+- Automatic pagination for multiple images
+- High quality output
+
+**Layout Specifications:**
+- Page size: A4 (210mm x 297mm)
+- Margins: 20mm all sides
+- Professional typography
+- Clear section headers
+- Readable body text (11pt)
+- Line spacing: 1.5
+
+**Best For:**
+- Client presentations
+- Portfolio pieces
+- Workshop deliverables
+- Stakeholder reports
+- Professional documentation
+- Archival records
+
+---
+
+### Email Integration
+
+**Send results directly from the app:**
+
+1. Complete all 5 phases
+2. Click "Email Results" button
+3. Email modal opens
+
+**Email Form Fields:**
+- **Recipients:** Comma-separated email addresses
+- **Subject:** Pre-filled with challenge title (editable)
+- **Message:** Optional personal note
+- **Preview:** See formatted content before sending
+
+**How It Works:**
+1. Fill in recipient email(s)
+2. Customize subject if desired
+3. Add optional message
+4. Click "Send Email"
+5. Default email client opens
+6. Email pre-populated with all content
+7. Review and send from your email client
+
+**Email Content Includes:**
+- Challenge title and topic
+- Team/solo identification
+- Date and score
+- HMW statement
+- Top 3 ideas
+- Prototype description
+- Iteration notes
+- Note about images
+
+**Image Handling:**
+- Images cannot be attached automatically via mailto
+- Email includes note: "Images attached separately"
+- Manually attach images if needed
+- Or reference PDF export for images
+
+**Best For:**
+- Quick team sharing
+- Stakeholder updates
+- Workshop follow-ups
+- Collaboration requests
+- Feedback gathering
+
+**Limitations:**
+- Uses mailto: protocol (opens email client)
+- Cannot auto-attach files
+- Requires default email client configured
+- Some email clients may truncate long content
+
+---
+
+### Copy to Clipboard
+
+**Quick sharing for chat and social:**
+
+1. Complete all 5 phases
+2. Click "Copy to Clipboard" button
+3. Paste anywhere (Slack, email, notes)
+
+**Format:**
+```
+🎨 IDEO Design Sprint Results
+
+👥 Team: Innovation Squad
+🎯 Challenge: Campus Coffee Crisis (Education)
+⭐ Score: 95 points
+💡 Ideas Generated: 12
+
+Top Concept: Mobile pre-order app with
+campus pickup integration
+```
+
+**Best For:**
+- Slack messages
+- Quick emails
+- Social media posts
+- Chat applications
+- Note-taking apps
+- Informal sharing
+
+---
+
+## Timer Customization
+
+### Adjusting Ideation Timer
+
+**Access Timer Settings:**
+1. Click Settings icon (⚙️) on intro screen
+2. Scroll to "Timer Settings" section
+3. See current timer duration
+
+**Preset Options:**
+
+Quick selection buttons:
+- **1 minute (60s):** Lightning round, energizer
+- **3 minutes (180s):** Default, balanced pace
+- **5 minutes (300s):** More thoughtful ideation
+- **10 minutes (600s):** Deep exploration
+
+**Custom Duration:**
+
+Enter any duration between 30 seconds and 30 minutes:
+
+1. Click custom input field
+2. Enter number of seconds
+3. Valid range: 30-1800 seconds
+4. Timer updates immediately
+
+**Validation:**
+- Minimum: 30 seconds
+- Maximum: 1800 seconds (30 minutes)
+- Error message if outside range
+- Must be numeric value
+
+**When Timer Applies:**
+- All sprints in current browser session
+- Resets to default (180s) when browser closed
+- Not saved permanently
+- Applies to Ideate phase only
+
+**Use Cases:**
+
+*Short Timer (60s):*
+- Warm-up exercises
+- Quick energizers
+- Rapid-fire brainstorming
+- Time-constrained workshops
+- Testing the game
+
+*Medium Timer (180-300s):*
+- Standard workshops
+- Balanced ideation
+- Most use cases
+- Default experience
+
+*Long Timer (600s+):*
+- Deep exploration
+- Complex challenges
+- Smaller groups
+- Thoughtful ideation
+- Research-heavy topics
+
+**Timer Display:**
+- Shows in MM:SS format
+- Counts down in real-time
+- Visual progress indicator
+- Can proceed early if 5+ ideas submitted
+- Automatic progression when time expires
+
+**Tips:**
+- Start with default (3 min) for first sprint
+- Adjust based on group energy
+- Shorter for energizers
+- Longer for complex problems
+- Consider group size (more people = more time)
+
+---
+
 ## Best Practices
 
 ### Solo Mode Tips
@@ -858,6 +1308,33 @@ A: Yes, edit the JavaScript in index.html.
 
 **Q: How do I report bugs?**
 A: Note the issue, browser, and OS version for troubleshooting.
+
+**Q: Can I upload images to my prototype?**
+A: Yes, up to 3 images (PNG, JPG, JPEG, GIF, SVG), each under 5MB.
+
+**Q: How do I export to PDF?**
+A: Complete the sprint and click "Download PDF" on the results screen.
+
+**Q: Can I customize the timer duration?**
+A: Yes, in Settings you can choose presets or enter custom duration (30s-30min).
+
+**Q: How do I share challenge sets with colleagues?**
+A: Export your challenges as JSON, share the file, they import it.
+
+**Q: Do imported challenges stay permanently?**
+A: No, like custom challenges they're session-only. Export to save.
+
+**Q: Can I disable default challenges?**
+A: Yes, use Challenge Selection in Settings to enable/disable any challenge.
+
+**Q: What topics can I assign to challenges?**
+A: 8 predefined topics or create your own custom topic.
+
+**Q: Does email export attach images automatically?**
+A: No, mailto protocol limitation. Use PDF export for images.
+
+**Q: Are timer settings saved between sessions?**
+A: No, timer resets to default (180s) when browser is closed.
 
 ---
 

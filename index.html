@@ -180,6 +180,26 @@
             />
           </svg>
         ),
+        Upload: (props) => (
+          <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+            />
+          </svg>
+        ),
+        Image: (props) => (
+          <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        ),
       };
 
       const IDEOGame = () => {
@@ -191,6 +211,7 @@
         const [ideas, setIdeas] = useState([]);
         const [selectedIdeas, setSelectedIdeas] = useState([]);
         const [prototype, setPrototype] = useState(null);
+        const [prototypeImages, setPrototypeImages] = useState([]);
         const [score, setScore] = useState(0);
         const [timer, setTimer] = useState(180);
         const [timerActive, setTimerActive] = useState(false);
@@ -409,6 +430,7 @@
           setIdeas([]);
           setSelectedIdeas([]);
           setPrototype(null);
+          setPrototypeImages([]);
           setHmwStatement("");
           setIterationNotes("");
           setScore(0);
@@ -475,6 +497,52 @@
               setScore(score + 20);
             }
           }
+        };
+
+        const handleImageUpload = (event) => {
+          const files = event.target.files;
+          if (!files || files.length === 0) return;
+
+          const file = files[0];
+          
+          // Validate file type
+          const validTypes = ['image/png', 'image/jpg', 'image/jpeg', 'image/gif', 'image/svg+xml'];
+          if (!validTypes.includes(file.type)) {
+            alert('Please upload an image file (PNG, JPG, JPEG, GIF, or SVG)');
+            event.target.value = '';
+            return;
+          }
+
+          // Validate file size (max 5MB)
+          const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+          if (file.size > maxSize) {
+            alert('Image file must be under 5MB. Please choose a smaller file.');
+            event.target.value = '';
+            return;
+          }
+
+          // Check if already at max images
+          if (prototypeImages.length >= 3) {
+            alert('Maximum 3 images allowed. Please remove an image before adding another.');
+            event.target.value = '';
+            return;
+          }
+
+          // Read file and convert to base64
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setPrototypeImages([...prototypeImages, e.target.result]);
+            event.target.value = ''; // Reset input
+          };
+          reader.onerror = () => {
+            alert('Error reading file. Please try again.');
+            event.target.value = '';
+          };
+          reader.readAsDataURL(file);
+        };
+
+        const removeImage = (index) => {
+          setPrototypeImages(prototypeImages.filter((_, i) => i !== index));
         };
 
         const startTimer = () => {
@@ -552,6 +620,7 @@ ${selectedIdeas.map((idea, i) => `${i + 1}. ${idea}`).join("\n")}
 
 PROTOTYPE
 ${prototype}
+${prototypeImages.length > 0 ? `\n[Note: ${prototypeImages.length} image(s) attached - see PDF export for visuals]` : ""}
 
 ITERATION & REFLECTION
 ${iterationNotes}
@@ -1166,6 +1235,23 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           <p className="text-gray-700 mt-2">{prototype}</p>
                         </div>
                       )}
+                      {prototypeImages.length > 0 && (
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                          <strong className="text-purple-800">
+                            Prototype Images:
+                          </strong>
+                          <div className="flex flex-wrap gap-3 mt-3">
+                            {prototypeImages.map((img, idx) => (
+                              <img
+                                key={idx}
+                                src={img}
+                                alt={`Prototype sketch ${idx + 1}`}
+                                className="w-36 h-36 object-cover rounded-lg border-2 border-purple-200"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {iterationNotes && (
                         <div className="bg-pink-50 p-4 rounded-lg">
                           <strong className="text-pink-800">
@@ -1509,6 +1595,55 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                         rows="6"
                         className="w-full p-4 border-2 border-gray-300 rounded-lg mb-4 focus:border-purple-500 focus:outline-none"
                       />
+                      
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Add Images or Sketches (Optional)
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          id="image-upload"
+                        />
+                        <label
+                          htmlFor="image-upload"
+                          className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-lg font-semibold hover:bg-purple-200 transition-all cursor-pointer"
+                        >
+                          <Icons.Upload className="w-5 h-5" />
+                          Upload Image
+                        </label>
+                        <p className="text-xs text-gray-500 mt-1">
+                          PNG, JPG, GIF, or SVG • Max 5MB • Up to 3 images
+                        </p>
+                      </div>
+
+                      {prototypeImages.length > 0 && (
+                        <div className="mb-4">
+                          <div className="font-medium text-gray-700 mb-2">
+                            Uploaded Images ({prototypeImages.length}/3)
+                          </div>
+                          <div className="flex flex-wrap gap-3">
+                            {prototypeImages.map((img, idx) => (
+                              <div key={idx} className="relative group">
+                                <img
+                                  src={img}
+                                  alt={`Prototype sketch ${idx + 1}`}
+                                  className="w-36 h-36 object-cover rounded-lg border-2 border-gray-300"
+                                />
+                                <button
+                                  onClick={() => removeImage(idx)}
+                                  className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100"
+                                >
+                                  <Icons.X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <button
                         onClick={handleSubmit}
                         className="w-full bg-purple-500 text-white py-3 rounded-lg font-bold hover:bg-purple-600 transition-all"

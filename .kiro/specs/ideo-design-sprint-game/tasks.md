@@ -72,27 +72,27 @@
   - Ensure timer resets to custom duration when starting new game
   - _Requirements: 15.8, 15.9, 15.10_
 
-- [ ] 3. Implement image upload for prototypes
+- [x] 3. Implement image upload for prototypes
   - Add prototypeImages state variable as array
   - Add file input with accept="image/\*" in Prototype phase
   - Style upload button with icon
   - _Requirements: 14.1, 14.2_
 
-- [ ] 3.1 Implement image validation and preview
+- [x] 3.1 Implement image validation and preview
   - Implement handleImageUpload function with file type validation (PNG, JPG, JPEG, GIF, SVG)
   - Add file size validation (max 5MB)
   - Display error messages for invalid files
   - Use FileReader to convert to base64 and store in state
   - _Requirements: 14.3, 14.4, 14.5_
 
-- [ ] 3.2 Display image thumbnails and removal
+- [x] 3.2 Display image thumbnails and removal
   - Display uploaded images as thumbnails (150px width)
   - Add remove button for each image
   - Implement removeImage function
   - Limit to maximum 3 images
   - _Requirements: 14.6, 14.7, 14.10_
 
-- [ ] 3.3 Include images in results and exports
+- [x] 3.3 Include images in results and exports
   - Display images in completion screen
   - Update generateShareableResults to include images
   - Add note about images in text export

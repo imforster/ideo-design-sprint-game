@@ -10,12 +10,21 @@ const IDEOGame = () => {
   const [ideas, setIdeas] = useState([]);
   const [selectedIdeas, setSelectedIdeas] = useState([]);
   const [prototype, setPrototype] = useState(null);
+  const [prototypeImages, setPrototypeImages] = useState([]);
   const [score, setScore] = useState(0);
   const [timer, setTimer] = useState(180);
   const [timerActive, setTimerActive] = useState(false);
   const [timerDuration, setTimerDuration] = useState(180);
+  const [customTimerInput, setCustomTimerInput] = useState('');
+  const [timerError, setTimerError] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailForm, setEmailForm] = useState({
+    recipients: '',
+    subject: '',
+    message: ''
+  });
   
   // Team mode state
   const [teamName, setTeamName] = useState('');
@@ -108,6 +117,313 @@ const IDEOGame = () => {
     const allTitles = allChallenges.map(c => c.title);
     setEnabledChallenges(new Set(allTitles));
   }, [allChallenges.length]);
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const files = event.target.files;
+      if (!files || files.length === 0) return;
+
+      const file = files[0];
+      
+      if (!file) {
+        alert('No file selected. Please try again.');
+        event.target.value = '';
+        return;
+      }
+
+      const validTypes = ['image/png', 'image/jpg', 'image/jpeg', 'image/gif', 'image/svg+xml'];
+      if (!validTypes.includes(file.type)) {
+        alert('Please upload an image file (PNG, JPG, JPEG, GIF, or SVG)');
+        event.target.value = '';
+        return;
+      }
+
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        alert('Image file must be under 5MB. Please choose a smaller file.');
+        event.target.value = '';
+        return;
+      }
+
+      if (prototypeImages.length >= 3) {
+        alert('Maximum 3 images allowed. Please remove an image before adding another.');
+        event.target.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const result = e.target?.result;
+          if (!result) {
+            throw new Error('Failed to read image data');
+          }
+          setPrototypeImages([...prototypeImages, result as string]);
+          event.target.value = '';
+        } catch (error) {
+          console.error('Error processing image:', error);
+          alert('Failed to process image. Please try a different file.');
+          event.target.value = '';
+        }
+      };
+      
+      reader.onerror = (error) => {
+        console.error('FileReader error:', error);
+        alert('Error reading file. Please try again with a different file.');
+        event.target.value = '';
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error in handleImageUpload:', error);
+      alert('An unexpected error occurred while uploading the image. Please try again.');
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
+  };
+
+  const removeImage = (index: number) => {
+    try {
+      if (typeof index !== 'number' || index < 0 || index >= prototypeImages.length) {
+        console.error('Invalid image index:', index);
+        return;
+      }
+      setPrototypeImages(prototypeImages.filter((_, i) => i !== index));
+    } catch (error) {
+      console.error('Error removing image:', error);
+      alert('Failed to remove image. Please try again.');
+    }
+  };
+
+  const downloadPDF = () => {
+    try {
+      if (!(window as any).jspdf || !(window as any).jspdf.jsPDF) {
+        alert('PDF library not loaded. Please refresh the page and try again.');
+        return;
+      }
+
+      if (!challenge) {
+        alert('No challenge data available. Please complete a design sprint first.');
+        return;
+      }
+
+      const { jsPDF } = (window as any).jspdf;
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 20;
+      const contentWidth = pageWidth - (2 * margin);
+      let yPosition = margin;
+
+      const colors = {
+        purple: [147, 51, 234],
+        gold: [234, 179, 8],
+        darkGray: [31, 41, 55],
+        mediumGray: [107, 114, 128],
+        lightGray: [243, 244, 246],
+        blue: [59, 130, 246],
+        green: [34, 197, 94],
+        pink: [236, 72, 153]
+      };
+
+      const addText = (text: string, fontSize: number, isBold = false, color = colors.darkGray, align = 'left') => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+        doc.setTextColor(...color);
+        
+        const lines = doc.splitTextToSize(text, contentWidth);
+        
+        if (yPosition + (lines.length * fontSize * 0.35) > pageHeight - margin) {
+          doc.addPage();
+          yPosition = margin;
+        }
+        
+        if (align === 'center') {
+          lines.forEach((line: string) => {
+            const textWidth = doc.getTextWidth(line);
+            doc.text(line, (pageWidth - textWidth) / 2, yPosition);
+            yPosition += fontSize * 0.35;
+          });
+        } else {
+          doc.text(lines, margin, yPosition);
+          yPosition += lines.length * fontSize * 0.35;
+        }
+        
+        yPosition += 2;
+      };
+
+      // Header
+      doc.setFillColor(...colors.purple);
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.setFont('helvetica', 'bold');
+      doc.text('IDEO Design Sprint Results', pageWidth / 2, 25, { align: 'center' });
+
+      yPosition = 50;
+
+      // Challenge section
+      addText('Challenge', 18, true, colors.purple);
+      addText(challenge.title, 14, true);
+      addText(challenge.description, 11);
+      yPosition += 5;
+
+      // Results sections
+      if (hmwStatement) {
+        addText('How Might We Statement', 16, true, colors.blue);
+        addText(hmwStatement, 11);
+        yPosition += 5;
+      }
+
+      if (ideas.length > 0) {
+        addText('Ideas Generated', 16, true, colors.gold);
+        ideas.forEach((idea: string, index: number) => {
+          addText(`${index + 1}. ${idea}`, 11);
+        });
+        yPosition += 5;
+      }
+
+      if (selectedIdeas.length > 0) {
+        addText('Selected Ideas', 16, true, colors.green);
+        selectedIdeas.forEach((idea: string, index: number) => {
+          addText(`${index + 1}. ${idea}`, 11);
+        });
+        yPosition += 5;
+      }
+
+      if (prototype) {
+        addText('Prototype', 16, true, colors.pink);
+        addText(prototype, 11);
+        yPosition += 5;
+      }
+
+      if (prototypeImages.length > 0) {
+        addText('Prototype Images', 16, true, colors.pink);
+        
+        prototypeImages.forEach((imgData: string, index: number) => {
+          try {
+            const imgWidth = 80;
+            const imgHeight = 60;
+            
+            if (yPosition + imgHeight > pageHeight - margin) {
+              doc.addPage();
+              yPosition = margin;
+            }
+            
+            doc.addImage(imgData, 'JPEG', margin, yPosition, imgWidth, imgHeight);
+            yPosition += imgHeight + 10;
+          } catch (error) {
+            console.error(`Error adding image ${index + 1}:`, error);
+            addText(`[Image ${index + 1}: Error loading image]`, 10, false, colors.mediumGray);
+          }
+        });
+      }
+
+      if (iterationNotes) {
+        addText('Iteration Notes', 16, true, colors.purple);
+        addText(iterationNotes, 11);
+      }
+
+      // Footer
+      const now = new Date();
+      const timestamp = now.toLocaleString();
+      doc.setFontSize(8);
+      doc.setTextColor(...colors.mediumGray);
+      doc.text(`Generated on ${timestamp} | IDEO Design Sprint Game`, margin, pageHeight - 10);
+
+      doc.save(`design-sprint-${challenge.title.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
+
+  const handleEmailSend = () => {
+    try {
+      if (!challenge) {
+        alert('No sprint data available to share.');
+        return;
+      }
+
+      const results = {
+        challenge: challenge.title,
+        hmwStatement,
+        ideas,
+        selectedIdeas,
+        prototype,
+        iterationNotes,
+        score,
+        gameMode,
+        teamName: gameMode === 'team' ? teamName : undefined,
+        playerName: gameMode === 'team' ? playerName : undefined,
+        prototypeImagesCount: prototypeImages.length,
+        timestamp: new Date().toLocaleString()
+      };
+
+      let body = `Design Sprint Results\n\n`;
+      body += `Challenge: ${results.challenge}\n\n`;
+      
+      if (results.gameMode === 'team') {
+        body += `Team: ${results.teamName}\n`;
+        body += `Player: ${results.playerName}\n\n`;
+      }
+      
+      if (results.hmwStatement) {
+        body += `How Might We: ${results.hmwStatement}\n\n`;
+      }
+      
+      if (results.ideas.length > 0) {
+        body += `Ideas (${results.ideas.length}):\n`;
+        results.ideas.forEach((idea: string, i: number) => {
+          body += `${i + 1}. ${idea}\n`;
+        });
+        body += '\n';
+      }
+      
+      if (results.selectedIdeas.length > 0) {
+        body += `Selected Ideas:\n`;
+        results.selectedIdeas.forEach((idea: string, i: number) => {
+          body += `${i + 1}. ${idea}\n`;
+        });
+        body += '\n';
+      }
+      
+      if (results.prototype) {
+        body += `Prototype: ${results.prototype}\n\n`;
+      }
+      
+      if (results.prototypeImagesCount > 0) {
+        body += `[Note: ${results.prototypeImagesCount} image(s) attached separately]\n\n`;
+      }
+      
+      if (results.iterationNotes) {
+        body += `Iteration Notes: ${results.iterationNotes}\n\n`;
+      }
+      
+      body += `Score: ${results.score} points\n`;
+      body += `Completed: ${results.timestamp}`;
+
+      const subject = emailForm.subject || `Design Sprint Results: ${results.challenge}`;
+      const message = emailForm.message ? `${emailForm.message}\n\n${body}` : body;
+      
+      const mailtoLink = `mailto:${emailForm.recipients}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+      
+      window.open(mailtoLink);
+      setShowEmailModal(false);
+      setEmailForm({ recipients: '', subject: '', message: '' });
+    } catch (error) {
+      console.error('Error preparing email:', error);
+      alert('Failed to prepare email. Please try again.');
+    }
+  };
 
   const phases = [
     {
@@ -594,6 +910,104 @@ const IDEOGame = () => {
     }, 1000);
   };
 
+  const handleCustomTimerInput = (value: string) => {
+    setCustomTimerInput(value);
+    setTimerError('');
+
+    if (value === '') {
+      return;
+    }
+
+    const numValue = parseInt(value, 10);
+
+    if (isNaN(numValue)) {
+      setTimerError('Please enter a valid number of seconds');
+      return;
+    }
+
+    if (numValue < 30 || numValue > 1800) {
+      setTimerError('Timer duration must be between 30 seconds and 30 minutes');
+      return;
+    }
+
+    setTimerDuration(numValue);
+  };
+
+  const downloadResults = () => {
+    try {
+      if (!challenge) {
+        alert('No results to download. Please complete a design sprint first.');
+        return;
+      }
+
+      const content = `
+IDEO DESIGN SPRINT RESULTS
+========================
+
+${gameMode === 'team' ? `Team: ${teamName}` : 'Solo Sprint'}
+${gameMode === 'team' ? `Members: ${teamMembers.join(', ')}` : ''}
+Challenge: ${challenge.title} (${challenge.topic})
+Date: ${new Date().toLocaleDateString()}
+Score: ${score} points
+
+HOW MIGHT WE STATEMENT
+${hmwStatement}
+
+IDEAS GENERATED (${ideas.length} total)
+${ideas.map((idea: string, i: number) => `${i + 1}. ${idea}`).join('\n')}
+
+TOP 3 SELECTED IDEAS
+${selectedIdeas.map((idea: string, i: number) => `${i + 1}. ${idea}`).join('\n')}
+
+PROTOTYPE
+${prototype}
+${prototypeImages.length > 0 ? `\n[Note: ${prototypeImages.length} image(s) attached - see PDF export for visuals]` : ''}
+
+ITERATION NOTES
+${iterationNotes}
+
+Generated by IDEO Design Sprint Game
+      `.trim();
+
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `design-sprint-${challenge.title.replace(/[^a-zA-Z0-9]/g, '-')}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading results:', error);
+      alert('Failed to download results. Please try again.');
+    }
+  };
+
+  const copyToClipboard = () => {
+    try {
+      if (!challenge) {
+        alert('No results to copy. Please complete a design sprint first.');
+        return;
+      }
+
+      const summary = `Design Sprint: ${challenge.title}
+HMW: ${hmwStatement}
+Ideas: ${ideas.length} generated, ${selectedIdeas.length} selected
+Prototype: ${prototype ? 'Created' : 'Not created'}
+Score: ${score} points`;
+
+      navigator.clipboard.writeText(summary).then(() => {
+        alert('Results copied to clipboard!');
+      }).catch(() => {
+        alert('Failed to copy to clipboard. Please try again.');
+      });
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      alert('Failed to copy to clipboard. Please try again.');
+    }
+  };
+
   const addTeamMember = () => {
     try {
       const trimmedName = playerName.trim();
@@ -1049,6 +1463,102 @@ Play your own Design Sprint: [Your URL Here]`;
               </div>
 
               <div className="mb-6 border-t pt-6">
+                <h3 className="font-bold text-lg text-gray-800 mb-4">Timer Settings</h3>
+                <p className="text-sm text-gray-600 mb-4">Set the duration for the ideation phase timer</p>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                  <button
+                    onClick={() => {
+                      setTimerDuration(60);
+                      setCustomTimerInput('');
+                      setTimerError('');
+                    }}
+                    className={`p-3 rounded-lg border-2 font-semibold transition-all ${
+                      timerDuration === 60 && customTimerInput === ''
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-300 text-gray-700 hover:border-gray-400'
+                    }`}
+                  >
+                    1 min
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTimerDuration(180);
+                      setCustomTimerInput('');
+                      setTimerError('');
+                    }}
+                    className={`p-3 rounded-lg border-2 font-semibold transition-all ${
+                      timerDuration === 180 && customTimerInput === ''
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-300 text-gray-700 hover:border-gray-400'
+                    }`}
+                  >
+                    3 min
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTimerDuration(300);
+                      setCustomTimerInput('');
+                      setTimerError('');
+                    }}
+                    className={`p-3 rounded-lg border-2 font-semibold transition-all ${
+                      timerDuration === 300 && customTimerInput === ''
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-300 text-gray-700 hover:border-gray-400'
+                    }`}
+                  >
+                    5 min
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTimerDuration(600);
+                      setCustomTimerInput('');
+                      setTimerError('');
+                    }}
+                    className={`p-3 rounded-lg border-2 font-semibold transition-all ${
+                      timerDuration === 600 && customTimerInput === ''
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-300 text-gray-700 hover:border-gray-400'
+                    }`}
+                  >
+                    10 min
+                  </button>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Custom Duration (seconds)
+                  </label>
+                  <input
+                    type="number"
+                    value={customTimerInput}
+                    onChange={(e) => handleCustomTimerInput(e.target.value)}
+                    placeholder="Enter seconds (30-1800)"
+                    min="30"
+                    max="1800"
+                    className={`w-full p-3 border-2 rounded-lg focus:outline-none transition-all ${
+                      timerError
+                        ? 'border-red-500 focus:border-red-500 bg-red-50'
+                        : 'border-gray-300 focus:border-blue-500'
+                    }`}
+                  />
+                  {timerError && (
+                    <p className="text-sm text-red-600 mt-2 flex items-center gap-1">
+                      <span>⚠️</span>
+                      {timerError}
+                    </p>
+                  )}
+                </div>
+
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <p className="text-xs text-gray-600 flex items-start gap-2">
+                    <span className="text-base">ℹ️</span>
+                    <span>Timer settings apply to the current session only and reset when the browser is closed.</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="mb-6 border-t pt-6">
                 <h3 className="font-bold text-lg text-gray-800 mb-4">Challenge Selection</h3>
                 <p className="text-sm text-gray-600 mb-4">Select which challenges will be available when starting a sprint</p>
                 
@@ -1296,18 +1806,126 @@ Play your own Design Sprint: [Your URL Here]`;
                     with {ideas.length} ideas and scored {score} points!
                   </p>
                 </div>
+                
+                {prototypeImages.length > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-sm text-blue-800 flex items-center gap-2">
+                      <span>📎</span>
+                      You have {prototypeImages.length} prototype image{prototypeImages.length !== 1 ? 's' : ''}. Please manually attach them to your email after it opens in your email client.
+                    </p>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={copyToClipboard}
+                    className="bg-blue-500 text-white px-4 py-3 rounded-lg font-bold hover:bg-blue-600 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Copy
+                  </button>
+                  <button
+                    onClick={downloadResults}
+                    className="bg-green-500 text-white px-4 py-3 rounded-lg font-bold hover:bg-green-600 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download
+                  </button>
+                </div>
+                
                 <button
-                  onClick={copyToClipboard}
-                  className="w-full bg-blue-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-600 transition-all"
+                  onClick={downloadPDF}
+                  className="w-full bg-red-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-red-600 transition-all flex items-center justify-center gap-2"
                 >
-                  Copy Summary to Share
+                  📄 Download PDF Report
                 </button>
+                
                 <button
-                  onClick={downloadResults}
-                  className="w-full bg-green-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-600 transition-all"
+                  onClick={() => {
+                    setShowShare(false);
+                    setShowEmailModal(true);
+                  }}
+                  className="w-full bg-purple-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-600 transition-all flex items-center justify-center gap-2"
                 >
-                  Download Full Report
+                  ✉️ Send via Email
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Email Modal */}
+        {showEmailModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl p-8 max-w-md w-full">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">Send via Email</h2>
+                <button onClick={() => setShowEmailModal(false)} className="text-gray-500 hover:text-gray-700">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Recipients (comma-separated)
+                  </label>
+                  <input
+                    type="email"
+                    value={emailForm.recipients}
+                    onChange={(e) => setEmailForm({...emailForm, recipients: e.target.value})}
+                    placeholder="email1@example.com, email2@example.com"
+                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Subject (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={emailForm.subject}
+                    onChange={(e) => setEmailForm({...emailForm, subject: e.target.value})}
+                    placeholder={`Design Sprint Results: ${challenge?.title || 'Sprint'}`}
+                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Personal Message (optional)
+                  </label>
+                  <textarea
+                    value={emailForm.message}
+                    onChange={(e) => setEmailForm({...emailForm, message: e.target.value})}
+                    placeholder="Add a personal message..."
+                    rows={3}
+                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
+                
+                {prototypeImages.length > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-sm text-blue-800 flex items-center gap-2">
+                      <span>📎</span>
+                      You have {prototypeImages.length} prototype image{prototypeImages.length !== 1 ? 's' : ''}. Please manually attach them to your email after it opens in your email client.
+                    </p>
+                  </div>
+                )}
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowEmailModal(false)}
+                    className="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-bold hover:bg-gray-400 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleEmailSend}
+                    className="flex-1 bg-purple-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-600 transition-all"
+                    disabled={!emailForm.recipients.trim()}
+                  >
+                    Send Email
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1554,6 +2172,51 @@ Play your own Design Sprint: [Your URL Here]`;
                   rows="6"
                   className="w-full p-4 border-2 border-gray-300 rounded-lg mb-4 focus:border-purple-500 focus:outline-none"
                 />
+                
+                {/* Image Upload Section */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Add Images to Your Prototype (Optional - Max 3)
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    disabled={prototypeImages.length >= 3}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Supported formats: PNG, JPG, JPEG, GIF, SVG (Max 5MB each)
+                  </p>
+                </div>
+
+                {/* Image Preview */}
+                {prototypeImages.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">
+                      Uploaded Images ({prototypeImages.length}/3)
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {prototypeImages.map((img, idx) => (
+                        <div key={idx} className="relative group">
+                          <img
+                            src={img}
+                            alt={`Prototype image ${idx + 1}`}
+                            className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
+                          />
+                          <button
+                            onClick={() => removeImage(idx)}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100"
+                            aria-label={`Remove image ${idx + 1}`}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <button
                   onClick={handleSubmit}
                   className="w-full bg-purple-500 text-white py-3 rounded-lg font-bold hover:bg-purple-600 transition-all"
@@ -1569,6 +2232,26 @@ Play your own Design Sprint: [Your URL Here]`;
                   <div className="font-bold text-purple-800 mb-2">Your Prototype:</div>
                   <p className="text-gray-700">{prototype}</p>
                 </div>
+                
+                {/* Show prototype images if any */}
+                {prototypeImages.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">
+                      Prototype Images ({prototypeImages.length})
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {prototypeImages.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img}
+                          alt={`Prototype image ${idx + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 <div className="bg-pink-50 p-4 rounded-lg mb-4">
                   <div className="font-semibold text-pink-800 mb-2">Feedback Framework:</div>
                   <ul className="text-sm text-gray-700 space-y-1">

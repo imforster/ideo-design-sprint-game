@@ -687,49 +687,87 @@
         };
 
         const handleImageUpload = (event) => {
-          const files = event.target.files;
-          if (!files || files.length === 0) return;
+          try {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
 
-          const file = files[0];
-          
-          // Validate file type
-          const validTypes = ['image/png', 'image/jpg', 'image/jpeg', 'image/gif', 'image/svg+xml'];
-          if (!validTypes.includes(file.type)) {
-            alert('Please upload an image file (PNG, JPG, JPEG, GIF, or SVG)');
-            event.target.value = '';
-            return;
+            const file = files[0];
+            
+            // Validate file exists
+            if (!file) {
+              alert('No file selected. Please try again.');
+              event.target.value = '';
+              return;
+            }
+
+            // Validate file type
+            const validTypes = ['image/png', 'image/jpg', 'image/jpeg', 'image/gif', 'image/svg+xml'];
+            if (!validTypes.includes(file.type)) {
+              alert('Please upload an image file (PNG, JPG, JPEG, GIF, or SVG)');
+              event.target.value = '';
+              return;
+            }
+
+            // Validate file size (max 5MB)
+            const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+            if (file.size > maxSize) {
+              alert('Image file must be under 5MB. Please choose a smaller file.');
+              event.target.value = '';
+              return;
+            }
+
+            // Check if already at max images
+            if (prototypeImages.length >= 3) {
+              alert('Maximum 3 images allowed. Please remove an image before adding another.');
+              event.target.value = '';
+              return;
+            }
+
+            // Read file and convert to base64
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+              try {
+                const result = e.target.result;
+                if (!result) {
+                  throw new Error('Failed to read image data');
+                }
+                setPrototypeImages([...prototypeImages, result]);
+                event.target.value = ''; // Reset input
+              } catch (error) {
+                console.error('Error processing image:', error);
+                alert('Failed to process image. Please try a different file.');
+                event.target.value = '';
+              }
+            };
+            
+            reader.onerror = (error) => {
+              console.error('FileReader error:', error);
+              alert('Error reading file. Please try again with a different file.');
+              event.target.value = '';
+            };
+            
+            reader.readAsDataURL(file);
+          } catch (error) {
+            console.error('Error in handleImageUpload:', error);
+            alert('An unexpected error occurred while uploading the image. Please try again.');
+            if (event.target) {
+              event.target.value = '';
+            }
           }
-
-          // Validate file size (max 5MB)
-          const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-          if (file.size > maxSize) {
-            alert('Image file must be under 5MB. Please choose a smaller file.');
-            event.target.value = '';
-            return;
-          }
-
-          // Check if already at max images
-          if (prototypeImages.length >= 3) {
-            alert('Maximum 3 images allowed. Please remove an image before adding another.');
-            event.target.value = '';
-            return;
-          }
-
-          // Read file and convert to base64
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            setPrototypeImages([...prototypeImages, e.target.result]);
-            event.target.value = ''; // Reset input
-          };
-          reader.onerror = () => {
-            alert('Error reading file. Please try again.');
-            event.target.value = '';
-          };
-          reader.readAsDataURL(file);
         };
 
         const removeImage = (index) => {
-          setPrototypeImages(prototypeImages.filter((_, i) => i !== index));
+          try {
+            if (typeof index !== 'number' || index < 0 || index >= prototypeImages.length) {
+              console.error('Invalid image index:', index);
+              return;
+            }
+            setPrototypeImages(prototypeImages.filter((_, i) => i !== index));
+          } catch (error) {
+            console.error('Error removing image:', error);
+            alert('Failed to remove image. Please try again.');
+          }
         };
 
         const startTimer = () => {
@@ -786,7 +824,13 @@
         };
 
         const downloadResults = () => {
-          const content = `
+          try {
+            if (!challenge) {
+              alert('No results to download. Please complete a design sprint first.');
+              return;
+            }
+
+            const content = `
 IDEO DESIGN SPRINT RESULTS
 ========================
 
@@ -816,17 +860,28 @@ ${iterationNotes}
 Generated by IDEO Design Sprint Game
                 `.trim();
 
-          const blob = new Blob([content], { type: "text/plain" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `design-sprint-${teamName || "solo"}-${Date.now()}.txt`;
-          a.click();
-          URL.revokeObjectURL(url);
+            const blob = new Blob([content], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            const sanitizedTeamName = (teamName || "solo").replace(/[^a-z0-9]/gi, '-');
+            a.download = `design-sprint-${sanitizedTeamName}-${Date.now()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+          } catch (error) {
+            console.error('Error downloading results:', error);
+            alert('Failed to download results. Please try copying to clipboard instead.');
+          }
         };
 
         const copyToClipboard = () => {
-          const text = `🎨 IDEO Design Sprint Results
+          try {
+            if (!challenge) {
+              alert('No results to copy. Please complete a design sprint first.');
+              return;
+            }
+
+            const text = `🎨 IDEO Design Sprint Results
 
 ${gameMode === "team" ? `👥 Team: ${teamName}` : "🧑 Solo Sprint"}
 🎯 Challenge: ${challenge.title} (${challenge.topic})
@@ -835,14 +890,53 @@ ${gameMode === "team" ? `👥 Team: ${teamName}` : "🧑 Solo Sprint"}
 
 Top Concept: ${selectedIdeas[0] || "N/A"}`;
 
-          navigator.clipboard.writeText(text).then(() => {
-            alert("Results copied to clipboard!");
-          });
+            if (!navigator.clipboard) {
+              // Fallback for browsers that don't support clipboard API
+              const textArea = document.createElement('textarea');
+              textArea.value = text;
+              textArea.style.position = 'fixed';
+              textArea.style.left = '-999999px';
+              document.body.appendChild(textArea);
+              textArea.select();
+              try {
+                document.execCommand('copy');
+                alert('Results copied to clipboard!');
+              } catch (err) {
+                console.error('Fallback copy failed:', err);
+                alert('Failed to copy to clipboard. Please try downloading results instead.');
+              }
+              document.body.removeChild(textArea);
+              return;
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+              alert("Results copied to clipboard!");
+            }).catch((error) => {
+              console.error('Error copying to clipboard:', error);
+              alert('Failed to copy to clipboard. Please try downloading results instead.');
+            });
+          } catch (error) {
+            console.error('Error in copyToClipboard:', error);
+            alert('Failed to copy to clipboard. Please try downloading results instead.');
+          }
         };
 
         const downloadPDF = () => {
-          // Access jsPDF from the global window object
-          const { jsPDF } = window.jspdf;
+          try {
+            // Check if jsPDF is available
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+              alert('PDF library not loaded. Please refresh the page and try again.');
+              return;
+            }
+
+            // Validate required data
+            if (!challenge) {
+              alert('No challenge data available. Please complete a design sprint first.');
+              return;
+            }
+
+            // Access jsPDF from the global window object
+            const { jsPDF } = window.jspdf;
           const doc = new jsPDF({
             orientation: 'portrait',
             unit: 'mm',
@@ -1106,9 +1200,19 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
           doc.text('Generated by IDEO Design Sprint Game', pageWidth / 2, yPosition, { align: 'center' });
 
           // Download the PDF
-          const filename = `design-sprint-${teamName || 'solo'}-${Date.now()}.pdf`;
-          doc.save(filename);
-        };
+          try {
+            const sanitizedTeamName = (teamName || 'solo').replace(/[^a-z0-9]/gi, '-');
+            const filename = `design-sprint-${sanitizedTeamName}-${Date.now()}.pdf`;
+            doc.save(filename);
+          } catch (saveError) {
+            console.error('Error saving PDF:', saveError);
+            alert('Failed to save PDF file. Please check your browser settings and try again.');
+          }
+        } catch (error) {
+          console.error('Error generating PDF:', error);
+          alert('Failed to generate PDF. Please try downloading as text file instead.');
+        }
+      };
 
         const generateShareableResults = () => {
           return {
@@ -1173,43 +1277,84 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
         };
 
         const openEmailClient = () => {
-          // Validate email form inputs
-          if (!emailForm.recipients.trim()) {
-            alert('Please enter at least one recipient email address');
-            return;
-          }
+          try {
+            // Validate challenge data exists
+            if (!challenge) {
+              alert('No results to email. Please complete a design sprint first.');
+              return;
+            }
 
-          // Basic email validation
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          const recipients = emailForm.recipients.split(',').map(e => e.trim());
-          const invalidEmails = recipients.filter(email => !emailRegex.test(email));
-          
-          if (invalidEmails.length > 0) {
-            alert(`Invalid email address(es): ${invalidEmails.join(', ')}`);
-            return;
-          }
+            // Validate email form inputs
+            if (!emailForm.recipients || !emailForm.recipients.trim()) {
+              alert('Please enter at least one recipient email address');
+              return;
+            }
 
-          // Format email body
-          let emailBody = formatEmailBody();
-          
-          // Add optional message if provided
-          if (emailForm.message.trim()) {
-            emailBody = `${emailForm.message.trim()}\n\n${emailBody}`;
-          }
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const recipients = emailForm.recipients.split(',').map(e => e.trim()).filter(e => e);
+            
+            if (recipients.length === 0) {
+              alert('Please enter at least one valid recipient email address');
+              return;
+            }
 
-          // Construct mailto URL with encoded parameters
-          const subject = encodeURIComponent(emailForm.subject);
-          const body = encodeURIComponent(emailBody);
-          const to = encodeURIComponent(emailForm.recipients);
-          
-          const mailtoUrl = `mailto:${to}?subject=${subject}&body=${body}`;
-          
-          // Open mailto URL in new window
-          window.open(mailtoUrl, '_blank');
-          
-          // Close email modal and show confirmation
-          setShowEmailModal(false);
-          alert('Email client opened! Please manually attach any prototype images if needed.');
+            const invalidEmails = recipients.filter(email => !emailRegex.test(email));
+            
+            if (invalidEmails.length > 0) {
+              alert(`Invalid email address(es): ${invalidEmails.join(', ')}\n\nPlease use format: email@example.com`);
+              return;
+            }
+
+            // Validate subject
+            if (!emailForm.subject || !emailForm.subject.trim()) {
+              alert('Please enter an email subject');
+              return;
+            }
+
+            // Format email body
+            let emailBody;
+            try {
+              emailBody = formatEmailBody();
+            } catch (error) {
+              console.error('Error formatting email body:', error);
+              alert('Failed to format email content. Please try downloading results instead.');
+              return;
+            }
+            
+            // Add optional message if provided
+            if (emailForm.message && emailForm.message.trim()) {
+              emailBody = `${emailForm.message.trim()}\n\n${emailBody}`;
+            }
+
+            // Construct mailto URL with encoded parameters
+            try {
+              const subject = encodeURIComponent(emailForm.subject.trim());
+              const body = encodeURIComponent(emailBody);
+              const to = encodeURIComponent(emailForm.recipients.trim());
+              
+              // Check if mailto URL is too long (some email clients have limits)
+              const mailtoUrl = `mailto:${to}?subject=${subject}&body=${body}`;
+              
+              if (mailtoUrl.length > 2000) {
+                alert('Email content is too long for some email clients. Please try downloading results as a file instead.');
+                return;
+              }
+              
+              // Open mailto URL in new window
+              window.open(mailtoUrl, '_blank');
+              
+              // Close email modal and show confirmation
+              setShowEmailModal(false);
+              alert('Email client opened! Please manually attach any prototype images if needed.');
+            } catch (error) {
+              console.error('Error creating mailto URL:', error);
+              alert('Failed to open email client. Please try copying results to clipboard instead.');
+            }
+          } catch (error) {
+            console.error('Error in openEmailClient:', error);
+            alert('An unexpected error occurred. Please try downloading results instead.');
+          }
         };
 
         // Intro Screen (truncated for brevity - full component continues...)

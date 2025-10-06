@@ -152,35 +152,89 @@ const IDEOGame = () => {
   ];
 
   const addCustomChallenge = () => {
-    if (newChallenge.title && newChallenge.description && newChallenge.persona && newChallenge.painPoint && newChallenge.topic) {
-      setCustomChallenges([...customChallenges, { ...newChallenge }]);
+    try {
+      // Validate all fields are filled
+      if (!newChallenge.title || !newChallenge.title.trim()) {
+        alert('Please enter a challenge title');
+        return;
+      }
+      if (!newChallenge.description || !newChallenge.description.trim()) {
+        alert('Please enter a challenge description');
+        return;
+      }
+      if (!newChallenge.persona || !newChallenge.persona.trim()) {
+        alert('Please enter a user persona');
+        return;
+      }
+      if (!newChallenge.painPoint || !newChallenge.painPoint.trim()) {
+        alert('Please enter a pain point');
+        return;
+      }
+      if (!newChallenge.topic || !newChallenge.topic.trim()) {
+        alert('Please select or enter a topic');
+        return;
+      }
+
+      // Check for duplicate titles
+      const isDuplicate = [...defaultChallenges, ...customChallenges].some(
+        c => c.title.toLowerCase() === newChallenge.title.trim().toLowerCase()
+      );
+      
+      if (isDuplicate) {
+        alert('A challenge with this title already exists. Please use a different title.');
+        return;
+      }
+
+      // Trim all fields
+      const trimmedChallenge = {
+        title: newChallenge.title.trim(),
+        description: newChallenge.description.trim(),
+        persona: newChallenge.persona.trim(),
+        painPoint: newChallenge.painPoint.trim(),
+        topic: newChallenge.topic.trim()
+      };
+
+      setCustomChallenges([...customChallenges, trimmedChallenge]);
+      
       // Enable the new challenge by default
       const newEnabled = new Set(enabledChallenges);
-      newEnabled.add(newChallenge.title);
+      newEnabled.add(trimmedChallenge.title);
       setEnabledChallenges(newEnabled);
+      
       setNewChallenge({ title: '', description: '', persona: '', painPoint: '', topic: '' });
       setShowAddChallenge(false);
-    } else {
-      alert('Please fill in all fields for the challenge');
+    } catch (error) {
+      console.error('Error adding custom challenge:', error);
+      alert('Failed to add challenge. Please try again.');
     }
   };
 
   const exportChallenges = () => {
-    const exportData = {
-      version: CHALLENGE_SCHEMA_VERSION,
-      exportDate: new Date().toISOString(),
-      challenges: customChallenges
-    };
+    try {
+      if (!customChallenges || customChallenges.length === 0) {
+        alert('No custom challenges to export. Please add some challenges first.');
+        return;
+      }
 
-    const jsonString = JSON.stringify(exportData, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const timestamp = new Date().toISOString().split('T')[0];
-    a.download = `ideo-challenges-${timestamp}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+      const exportData = {
+        version: CHALLENGE_SCHEMA_VERSION,
+        exportDate: new Date().toISOString(),
+        challenges: customChallenges
+      };
+
+      const jsonString = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const timestamp = new Date().toISOString().split('T')[0];
+      a.download = `ideo-challenges-${timestamp}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting challenges:', error);
+      alert('Failed to export challenges. Please try again or check your browser settings.');
+    }
   };
 
   const validateChallengeJSON = (data) => {
@@ -229,59 +283,112 @@ const IDEOGame = () => {
   };
 
   const handleImportFile = (event: any) => {
-    const file = event.target.files[0];
-    if (!file) return;
+    try {
+      const file = event.target.files[0];
+      if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e: any) => {
-      try {
-        const jsonData = JSON.parse(e.target?.result as string);
-        const validationResult = validateChallengeJSON(jsonData);
-        
-        if (validationResult.valid) {
-          setImportPreviewData(jsonData.challenges);
-          setShowImportPreview(true);
-        } else {
-          alert(`Invalid JSON file: ${validationResult.error}`);
-        }
-      } catch (error) {
-        alert('Invalid JSON file. Please check the file format and try again.');
+      // Validate file type
+      if (!file.name.endsWith('.json')) {
+        alert('Please select a valid JSON file (.json extension required).');
+        event.target.value = '';
+        return;
       }
-    };
-    reader.readAsText(file);
-    
-    // Reset the input so the same file can be selected again
-    event.target.value = '';
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        alert('File is too large. Please select a file smaller than 5MB.');
+        event.target.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      
+      reader.onerror = () => {
+        alert('Failed to read file. Please try again or select a different file.');
+        event.target.value = '';
+      };
+
+      reader.onload = (e: any) => {
+        try {
+          const result = e.target?.result;
+          if (!result || typeof result !== 'string') {
+            throw new Error('Invalid file content');
+          }
+
+          const jsonData = JSON.parse(result);
+          const validationResult = validateChallengeJSON(jsonData);
+          
+          if (validationResult.valid) {
+            setImportPreviewData(jsonData.challenges);
+            setShowImportPreview(true);
+          } else {
+            alert(`Invalid JSON file: ${validationResult.error}`);
+          }
+        } catch (error) {
+          console.error('Error parsing JSON:', error);
+          if (error instanceof SyntaxError) {
+            alert('Invalid JSON format. Please check that your file contains valid JSON data.');
+          } else {
+            alert('Failed to process file. Please check the file format and try again.');
+          }
+        }
+      };
+      
+      reader.readAsText(file);
+      
+      // Reset the input so the same file can be selected again
+      event.target.value = '';
+    } catch (error) {
+      console.error('Error handling file import:', error);
+      alert('An unexpected error occurred while importing. Please try again.');
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
   };
 
   const confirmImport = () => {
-    // Filter out duplicates based on title matching (case-insensitive)
-    const existingTitles = customChallenges.map(c => c.title.toLowerCase());
-    const newChallenges = importPreviewData.filter(
-      challenge => !existingTitles.includes(challenge.title.toLowerCase())
-    );
-    
-    const skippedCount = importPreviewData.length - newChallenges.length;
-    
-    // Merge new challenges into customChallenges
-    setCustomChallenges([...customChallenges, ...newChallenges]);
-    
-    // Enable all imported challenges by default
-    const newEnabled = new Set(enabledChallenges);
-    newChallenges.forEach(challenge => {
-      newEnabled.add(challenge.title);
-    });
-    setEnabledChallenges(newEnabled);
-    
-    // Display success message
-    let message = `Successfully imported ${newChallenges.length} challenge${newChallenges.length !== 1 ? 's' : ''}`;
-    if (skippedCount > 0) {
-      message += `\n${skippedCount} duplicate${skippedCount !== 1 ? 's' : ''} skipped`;
+    try {
+      if (!importPreviewData || importPreviewData.length === 0) {
+        alert('No challenges to import.');
+        return;
+      }
+
+      // Filter out duplicates based on title matching (case-insensitive)
+      const existingTitles = customChallenges.map(c => c.title.toLowerCase());
+      const newChallenges = importPreviewData.filter(
+        challenge => challenge && challenge.title && !existingTitles.includes(challenge.title.toLowerCase())
+      );
+      
+      const skippedCount = importPreviewData.length - newChallenges.length;
+      
+      // Merge new challenges into customChallenges
+      setCustomChallenges([...customChallenges, ...newChallenges]);
+      
+      // Enable all imported challenges by default
+      const newEnabled = new Set(enabledChallenges);
+      newChallenges.forEach(challenge => {
+        if (challenge && challenge.title) {
+          newEnabled.add(challenge.title);
+        }
+      });
+      setEnabledChallenges(newEnabled);
+      
+      // Display success message
+      let message = `Successfully imported ${newChallenges.length} challenge${newChallenges.length !== 1 ? 's' : ''}`;
+      if (skippedCount > 0) {
+        message += `\n${skippedCount} duplicate${skippedCount !== 1 ? 's' : ''} skipped`;
+      }
+      alert(message);
+      
+      // Clear import preview data
+      setImportPreviewData([]);
+    } catch (error) {
+      console.error('Error confirming import:', error);
+      alert('Failed to import challenges. Please try again.');
+      setImportPreviewData([]);
     }
-    alert(message);
-    
-    // Clear import preview data
-    setImportPreviewData([]);
   };
 
   const toggleChallengeEnabled = (title: string) => {
@@ -308,65 +415,132 @@ const IDEOGame = () => {
   };
 
   const startGame = (mode: string | null) => {
-    if (mode === 'team' && (!teamName || teamMembers.length === 0)) {
-      alert('Please enter a team name and add at least one team member');
-      return;
+    try {
+      // Validate mode
+      if (!mode) {
+        alert('Please select a game mode (Solo or Team)');
+        return;
+      }
+
+      // Validate team setup
+      if (mode === 'team') {
+        if (!teamName || !teamName.trim()) {
+          alert('Please enter a team name');
+          return;
+        }
+        if (teamMembers.length === 0) {
+          alert('Please add at least one team member');
+          return;
+        }
+      }
+
+      // Validate challenges
+      const enabled = getEnabledChallenges();
+      if (enabled.length === 0) {
+        alert('Please enable at least one challenge in settings before starting');
+        return;
+      }
+
+      // Select random challenge
+      const randomChallenge = enabled[Math.floor(Math.random() * enabled.length)];
+      if (!randomChallenge) {
+        alert('Failed to select a challenge. Please try again.');
+        return;
+      }
+
+      // Initialize game state
+      setChallenge(randomChallenge);
+      setGameMode(mode);
+      setGameState('playing');
+      setCurrentPhase(0);
+      setIdeas([]);
+      setSelectedIdeas([]);
+      setPrototype(null);
+      setHmwStatement('');
+      setIterationNotes('');
+      setScore(0);
+      setTimer(timerDuration);
+    } catch (error) {
+      console.error('Error starting game:', error);
+      alert('Failed to start game. Please refresh the page and try again.');
     }
-    const enabled = getEnabledChallenges();
-    if (enabled.length === 0) {
-      alert('Please enable at least one challenge in settings before starting');
-      return;
-    }
-    const randomChallenge = enabled[Math.floor(Math.random() * enabled.length)];
-    setChallenge(randomChallenge);
-    setGameMode(mode);
-    setGameState('playing');
-    setCurrentPhase(0);
-    setIdeas([]);
-    setSelectedIdeas([]);
-    setPrototype(null);
-    setHmwStatement('');
-    setIterationNotes('');
-    setScore(0);
-    setTimer(180);
   };
 
   const handleSubmit = () => {
-    if (currentPhase === 0) {
-      if (userInput.toLowerCase().includes('how might we')) {
-        setHmwStatement(userInput);
-        setScore(score + 20);
-        setUserInput('');
-        nextPhase();
-      } else {
-        alert("Try starting with 'How might we...'");
+    try {
+      // Validate input exists
+      if (!userInput || typeof userInput !== 'string') {
+        alert('Please enter some text before submitting');
+        return;
       }
-    } else if (currentPhase === 1) {
-      if (userInput.trim()) {
-        const newIdea = gameMode === 'team' && playerName 
-          ? `${userInput.trim()} [by ${playerName}]`
-          : userInput.trim();
-        setIdeas([...ideas, newIdea]);
-        setScore(score + 5);
-        setUserInput('');
-      }
-    } else if (currentPhase === 3) {
-      if (userInput.trim().length > 20) {
-        setPrototype(userInput);
+
+      if (currentPhase === 0) {
+        // Empathize phase - HMW statement
+        const trimmedInput = userInput.trim();
+        if (!trimmedInput) {
+          alert('Please enter a "How Might We" statement');
+          return;
+        }
+        if (trimmedInput.length < 10) {
+          alert('Please provide a more detailed "How Might We" statement');
+          return;
+        }
+        if (trimmedInput.toLowerCase().includes('how might we')) {
+          setHmwStatement(trimmedInput);
+          setScore(score + 20);
+          setUserInput('');
+          nextPhase();
+        } else {
+          alert("Try starting with 'How might we...'");
+        }
+      } else if (currentPhase === 1) {
+        // Ideate phase - ideas
+        const trimmedInput = userInput.trim();
+        if (trimmedInput) {
+          if (trimmedInput.length < 3) {
+            alert('Please provide a more detailed idea');
+            return;
+          }
+          const newIdea = gameMode === 'team' && playerName 
+            ? `${trimmedInput} [by ${playerName}]`
+            : trimmedInput;
+          setIdeas([...ideas, newIdea]);
+          setScore(score + 5);
+          setUserInput('');
+        }
+      } else if (currentPhase === 3) {
+        // Prototype phase
+        const trimmedInput = userInput.trim();
+        if (!trimmedInput) {
+          alert('Please describe your prototype');
+          return;
+        }
+        if (trimmedInput.length < 20) {
+          alert("Describe your prototype in more detail! (At least 20 characters)");
+          return;
+        }
+        setPrototype(trimmedInput);
         setScore(score + 30);
         setUserInput('');
         nextPhase();
-      } else {
-        alert("Describe your prototype in more detail!");
-      }
-    } else if (currentPhase === 4) {
-      if (userInput.trim().length > 15) {
-        setIterationNotes(userInput);
+      } else if (currentPhase === 4) {
+        // Iterate phase
+        const trimmedInput = userInput.trim();
+        if (!trimmedInput) {
+          alert('Please share your iteration thoughts');
+          return;
+        }
+        if (trimmedInput.length < 15) {
+          alert("Share more thoughts on how to improve! (At least 15 characters)");
+          return;
+        }
+        setIterationNotes(trimmedInput);
         setScore(score + 25);
         setGameState('complete');
-      } else {
-        alert("Share more thoughts on how to improve!");
       }
+    } catch (error) {
+      console.error('Error handling submit:', error);
+      alert('An error occurred while submitting. Please try again.');
     }
   };
 
@@ -382,13 +556,24 @@ const IDEOGame = () => {
   };
 
   const toggleIdeaSelection = (idea) => {
-    if (selectedIdeas.includes(idea)) {
-      setSelectedIdeas(selectedIdeas.filter(i => i !== idea));
-    } else if (selectedIdeas.length < 3) {
-      setSelectedIdeas([...selectedIdeas, idea]);
-      if (selectedIdeas.length === 2) {
-        setScore(score + 20);
+    try {
+      if (!idea) {
+        return;
       }
+
+      if (selectedIdeas.includes(idea)) {
+        setSelectedIdeas(selectedIdeas.filter(i => i !== idea));
+      } else if (selectedIdeas.length < 3) {
+        setSelectedIdeas([...selectedIdeas, idea]);
+        if (selectedIdeas.length === 2) {
+          setScore(score + 20);
+        }
+      } else {
+        alert('You can only select 3 ideas. Please deselect one first.');
+      }
+    } catch (error) {
+      console.error('Error toggling idea selection:', error);
+      alert('Failed to select idea. Please try again.');
     }
   };
 
@@ -410,9 +595,39 @@ const IDEOGame = () => {
   };
 
   const addTeamMember = () => {
-    if (playerName.trim() && !teamMembers.includes(playerName.trim())) {
-      setTeamMembers([...teamMembers, playerName.trim()]);
+    try {
+      const trimmedName = playerName.trim();
+      
+      if (!trimmedName) {
+        alert('Please enter a team member name');
+        return;
+      }
+
+      if (trimmedName.length < 2) {
+        alert('Please enter a valid name (at least 2 characters)');
+        return;
+      }
+
+      if (trimmedName.length > 50) {
+        alert('Name is too long (maximum 50 characters)');
+        return;
+      }
+
+      if (teamMembers.includes(trimmedName)) {
+        alert('This team member has already been added');
+        return;
+      }
+
+      if (teamMembers.length >= 20) {
+        alert('Maximum 20 team members allowed');
+        return;
+      }
+
+      setTeamMembers([...teamMembers, trimmedName]);
       setPlayerName('');
+    } catch (error) {
+      console.error('Error adding team member:', error);
+      alert('Failed to add team member. Please try again.');
     }
   };
 
@@ -437,8 +652,14 @@ const IDEOGame = () => {
   };
 
   const downloadResults = () => {
-    const results = generateShareableResults();
-    const content = `
+    try {
+      if (!challenge) {
+        alert('No results to download. Please complete a design sprint first.');
+        return;
+      }
+
+      const results = generateShareableResults();
+      const content = `
 IDEO DESIGN SPRINT RESULTS
 ========================
 
@@ -467,18 +688,29 @@ ${iterationNotes}
 Generated by IDEO Design Sprint Game
     `.trim();
 
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `design-sprint-${teamName || 'solo'}-${Date.now()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const filename = `design-sprint-${(teamName || 'solo').replace(/[^a-z0-9]/gi, '-')}-${Date.now()}.txt`;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading results:', error);
+      alert('Failed to download results. Please try copying to clipboard instead.');
+    }
   };
 
   const copyToClipboard = () => {
-    const results = generateShareableResults();
-    const text = `🎨 IDEO Design Sprint Results
+    try {
+      if (!challenge) {
+        alert('No results to copy. Please complete a design sprint first.');
+        return;
+      }
+
+      const results = generateShareableResults();
+      const text = `🎨 IDEO Design Sprint Results
 
 ${gameMode === 'team' ? `👥 Team: ${teamName}` : '🧑 Solo Sprint'}
 🎯 Challenge: ${challenge.title}
@@ -488,10 +720,35 @@ ${gameMode === 'team' ? `👥 Team: ${teamName}` : '🧑 Solo Sprint'}
 Top Concept: ${selectedIdeas[0] || 'N/A'}
 
 Play your own Design Sprint: [Your URL Here]`;
-    
-    navigator.clipboard.writeText(text).then(() => {
-      alert('Results copied to clipboard!');
-    });
+      
+      if (!navigator.clipboard) {
+        // Fallback for browsers that don't support clipboard API
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          alert('Results copied to clipboard!');
+        } catch (err) {
+          alert('Failed to copy to clipboard. Please try downloading results instead.');
+        }
+        document.body.removeChild(textArea);
+        return;
+      }
+
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Results copied to clipboard!');
+      }).catch((error) => {
+        console.error('Error copying to clipboard:', error);
+        alert('Failed to copy to clipboard. Please try downloading results instead.');
+      });
+    } catch (error) {
+      console.error('Error in copyToClipboard:', error);
+      alert('Failed to copy to clipboard. Please try downloading results instead.');
+    }
   };
 
   // Intro Screen

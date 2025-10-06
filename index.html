@@ -25,6 +25,50 @@
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }
+
+      /* Ensure modals are scrollable on mobile */
+      @media (max-width: 768px) {
+        .modal-content {
+          max-height: 85vh;
+          overflow-y: auto;
+        }
+      }
+
+      /* Improve touch targets for mobile */
+      @media (max-width: 768px) {
+        button, input[type="checkbox"], select {
+          min-height: 44px;
+          min-width: 44px;
+        }
+      }
+
+      /* Smooth transitions for all interactive elements */
+      button, input, textarea, select {
+        transition: all 0.2s ease-in-out;
+      }
+
+      /* Focus visible for accessibility */
+      *:focus-visible {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
+      }
+
+      /* Improve checkbox visibility */
+      input[type="checkbox"] {
+        cursor: pointer;
+        width: 18px;
+        height: 18px;
+      }
+
+      /* Image thumbnail hover effect */
+      .image-thumbnail {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      }
+
+      .image-thumbnail:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
     </style>
   </head>
   <body>
@@ -276,17 +320,17 @@
 
         const getTopicColor = (topic) => {
           const colors = {
-            Education: "bg-blue-100 text-blue-800",
-            Business: "bg-purple-100 text-purple-800",
-            Healthcare: "bg-red-100 text-red-800",
-            Technology: "bg-cyan-100 text-cyan-800",
-            Sustainability: "bg-green-100 text-green-800",
-            "Social Impact": "bg-orange-100 text-orange-800",
-            "Product Design": "bg-pink-100 text-pink-800",
-            "Service Design": "bg-indigo-100 text-indigo-800",
-            Custom: "bg-gray-100 text-gray-800",
+            Education: "bg-blue-100 text-blue-900 border border-blue-300",
+            Business: "bg-purple-100 text-purple-900 border border-purple-300",
+            Healthcare: "bg-red-100 text-red-900 border border-red-300",
+            Technology: "bg-cyan-100 text-cyan-900 border border-cyan-300",
+            Sustainability: "bg-green-100 text-green-900 border border-green-300",
+            "Social Impact": "bg-orange-100 text-orange-900 border border-orange-300",
+            "Product Design": "bg-pink-100 text-pink-900 border border-pink-300",
+            "Service Design": "bg-indigo-100 text-indigo-900 border border-indigo-300",
+            Custom: "bg-gray-100 text-gray-900 border border-gray-300",
           };
-          return colors[topic] || "bg-gray-100 text-gray-800";
+          return colors[topic] || "bg-gray-100 text-gray-900 border border-gray-300";
         };
 
         const defaultChallenges = [
@@ -1334,138 +1378,145 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
               </div>
 
               {showSettings && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                  <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                    <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-2xl font-bold text-gray-800">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+                  <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto modal-content my-4">
+                    <div className="flex justify-between items-center mb-4 sm:mb-6">
+                      <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
                         Facilitator Settings
                       </h2>
                       <button
                         onClick={() => setShowSettings(false)}
-                        className="text-gray-500 hover:text-gray-700"
+                        className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-lg transition-all"
+                        aria-label="Close settings"
                       >
                         <Icons.X className="w-6 h-6" />
                       </button>
                     </div>
 
                     <div className="mb-6">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-bold text-lg text-gray-800">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+                        <h3 className="font-bold text-base sm:text-lg text-gray-800">
                           Custom Challenges
                         </h3>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <button
                             onClick={() => setShowAddChallenge(true)}
-                            className="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-600 transition-all flex items-center gap-2"
+                            className="bg-blue-500 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-600 active:bg-blue-700 transition-all flex items-center gap-2"
+                            aria-label="Add new challenge"
                           >
                             <Icons.Plus className="w-4 h-4" />
-                            Add Challenge
+                            <span className="hidden sm:inline">Add Challenge</span>
+                            <span className="sm:hidden">Add</span>
                           </button>
-                          <label className="bg-purple-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-purple-600 transition-all flex items-center gap-2 cursor-pointer">
+                          <label className="bg-purple-500 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-bold hover:bg-purple-600 active:bg-purple-700 transition-all flex items-center gap-2 cursor-pointer">
                             <Icons.Download className="w-4 h-4" />
-                            Import Challenges
+                            <span className="hidden sm:inline">Import Challenges</span>
+                            <span className="sm:hidden">Import</span>
                             <input
                               type="file"
                               accept=".json"
                               onChange={handleImportFile}
                               className="hidden"
+                              aria-label="Import challenges from JSON file"
                             />
                           </label>
                           {customChallenges.length > 0 && (
                             <button
                               onClick={exportChallenges}
-                              className="bg-green-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-600 transition-all flex items-center gap-2"
+                              className="bg-green-500 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-600 active:bg-green-700 transition-all flex items-center gap-2"
+                              aria-label="Export challenges to JSON file"
                             >
                               <Icons.Download className="w-4 h-4" />
-                              Export Challenges
+                              <span className="hidden sm:inline">Export Challenges</span>
+                              <span className="sm:hidden">Export</span>
                             </button>
                           )}
                         </div>
                       </div>
 
                       {showAddChallenge && (
-                        <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                          <input
-                            type="text"
-                            placeholder="Challenge Title"
-                            value={newChallenge.title}
-                            onChange={(e) =>
-                              setNewChallenge({
-                                ...newChallenge,
-                                title: e.target.value,
-                              })
-                            }
-                            className="w-full p-2 border rounded mb-2"
-                          />
-                          <textarea
-                            placeholder="Challenge Description"
-                            value={newChallenge.description}
-                            onChange={(e) =>
-                              setNewChallenge({
-                                ...newChallenge,
-                                description: e.target.value,
-                              })
-                            }
-                            className="w-full p-2 border rounded mb-2"
-                            rows="2"
-                          />
-                          <input
-                            type="text"
-                            placeholder="User Persona"
-                            value={newChallenge.persona}
-                            onChange={(e) =>
-                              setNewChallenge({
-                                ...newChallenge,
-                                persona: e.target.value,
-                              })
-                            }
-                            className="w-full p-2 border rounded mb-2"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Pain Point"
-                            value={newChallenge.painPoint}
-                            onChange={(e) =>
-                              setNewChallenge({
-                                ...newChallenge,
-                                painPoint: e.target.value,
-                              })
-                            }
-                            className="w-full p-2 border rounded mb-2"
-                          />
-                          <select
-                            value={
-                              newChallenge.topic === "Custom" ||
-                              !TOPICS.includes(newChallenge.topic)
-                                ? "Custom"
-                                : newChallenge.topic
-                            }
-                            onChange={(e) =>
-                              setNewChallenge({
-                                ...newChallenge,
-                                topic: e.target.value,
-                              })
-                            }
-                            className="w-full p-2 border rounded mb-2"
-                          >
-                            <option value="">Select Topic</option>
-                            {TOPICS.map((topic) => (
-                              <option key={topic} value={topic}>
-                                {topic}
-                              </option>
-                            ))}
-                          </select>
-                          {(newChallenge.topic === "Custom" ||
-                            (newChallenge.topic &&
-                              !TOPICS.slice(0, -1).includes(
-                                newChallenge.topic,
-                              ))) && (
+                        <div className="bg-blue-50 p-4 rounded-lg mb-4 space-y-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Challenge Title <span className="text-red-500">*</span>
+                            </label>
                             <input
                               type="text"
-                              placeholder="Enter custom topic"
+                              placeholder="e.g., Campus Coffee Crisis"
+                              value={newChallenge.title}
+                              onChange={(e) =>
+                                setNewChallenge({
+                                  ...newChallenge,
+                                  title: e.target.value,
+                                })
+                              }
+                              className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                              aria-required="true"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Challenge Description <span className="text-red-500">*</span>
+                            </label>
+                            <textarea
+                              placeholder="Describe the problem or situation..."
+                              value={newChallenge.description}
+                              onChange={(e) =>
+                                setNewChallenge({
+                                  ...newChallenge,
+                                  description: e.target.value,
+                                })
+                              }
+                              className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                              rows="3"
+                              aria-required="true"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              User Persona <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g., Sarah, a sophomore juggling 18 credits"
+                              value={newChallenge.persona}
+                              onChange={(e) =>
+                                setNewChallenge({
+                                  ...newChallenge,
+                                  persona: e.target.value,
+                                })
+                              }
+                              className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                              aria-required="true"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Pain Point <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="What's the main frustration or challenge?"
+                              value={newChallenge.painPoint}
+                              onChange={(e) =>
+                                setNewChallenge({
+                                  ...newChallenge,
+                                  painPoint: e.target.value,
+                                })
+                              }
+                              className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                              aria-required="true"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Topic <span className="text-red-500">*</span>
+                            </label>
+                            <select
                               value={
-                                newChallenge.topic === "Custom"
-                                  ? ""
+                                newChallenge.topic === "Custom" ||
+                                !TOPICS.includes(newChallenge.topic)
+                                  ? "Custom"
                                   : newChallenge.topic
                               }
                               onChange={(e) =>
@@ -1474,19 +1525,55 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                                   topic: e.target.value,
                                 })
                               }
-                              className="w-full p-2 border rounded mb-2"
-                            />
+                              className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                              aria-required="true"
+                            >
+                              <option value="">Select Topic</option>
+                              {TOPICS.map((topic) => (
+                                <option key={topic} value={topic}>
+                                  {topic}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {(newChallenge.topic === "Custom" ||
+                            (newChallenge.topic &&
+                              !TOPICS.slice(0, -1).includes(
+                                newChallenge.topic,
+                              ))) && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Custom Topic Name <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="Enter custom topic name"
+                                value={
+                                  newChallenge.topic === "Custom"
+                                    ? ""
+                                    : newChallenge.topic
+                                }
+                                onChange={(e) =>
+                                  setNewChallenge({
+                                    ...newChallenge,
+                                    topic: e.target.value,
+                                  })
+                                }
+                                className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                                aria-required="true"
+                              />
+                            </div>
                           )}
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 pt-2">
                             <button
                               onClick={addCustomChallenge}
-                              className="bg-green-500 text-white px-4 py-2 rounded font-bold hover:bg-green-600"
+                              className="flex-1 bg-green-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-600 active:bg-green-700 transition-all"
                             >
                               Save Challenge
                             </button>
                             <button
                               onClick={() => setShowAddChallenge(false)}
-                              className="bg-gray-300 text-gray-700 px-4 py-2 rounded font-bold hover:bg-gray-400"
+                              className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-400 active:bg-gray-500 transition-all"
                             >
                               Cancel
                             </button>
@@ -1502,60 +1589,64 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           customChallenges.map((c, idx) => (
                             <div
                               key={idx}
-                              className="bg-gray-50 p-3 rounded-lg"
+                              className="bg-gray-50 p-3 sm:p-4 rounded-lg hover:bg-gray-100 transition-all"
                             >
-                              <div className="flex items-center gap-2 mb-1">
-                                <div className="font-semibold text-gray-800">
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <div className="font-semibold text-gray-800 text-sm sm:text-base">
                                   {c.title}
                                 </div>
                                 <span
                                   className={`px-2 py-1 rounded-full text-xs font-semibold ${getTopicColor(c.topic)}`}
+                                  role="status"
+                                  aria-label={`Topic: ${c.topic}`}
                                 >
                                   {c.topic}
                                 </span>
                               </div>
-                              <div className="text-sm text-gray-600">
+                              <div className="text-xs sm:text-sm text-gray-600">
                                 {c.description}
                               </div>
                             </div>
                           ))
                         ) : (
-                          <p className="text-sm text-gray-500 italic">
-                            No custom challenges yet
+                          <p className="text-sm text-gray-500 italic text-center py-4">
+                            No custom challenges yet. Click "Add Challenge" to create one.
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="mb-6 border-t pt-6">
-                      <h3 className="font-bold text-lg text-gray-800 mb-4">
+                    <div className="mb-6 border-t pt-4 sm:pt-6">
+                      <h3 className="font-bold text-base sm:text-lg text-gray-800 mb-3 sm:mb-4">
                         Challenge Selection
                       </h3>
-                      <p className="text-sm text-gray-600 mb-4">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                         Select which challenges will be available when starting
                         a sprint
                       </p>
 
-                      <div className="flex gap-2 mb-4">
+                      <div className="flex flex-wrap gap-2 mb-4">
                         <button
                           onClick={selectAllChallenges}
-                          className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-600 transition-all"
+                          className="bg-blue-500 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-600 active:bg-blue-700 transition-all"
+                          aria-label="Select all challenges"
                         >
                           Select All
                         </button>
                         <button
                           onClick={deselectAllChallenges}
-                          className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-400 transition-all"
+                          className="bg-gray-300 text-gray-700 px-3 sm:px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-400 active:bg-gray-500 transition-all"
+                          aria-label="Deselect all challenges"
                         >
                           Deselect All
                         </button>
                       </div>
 
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                      <div className="space-y-2 max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-2">
                         {allChallenges.map((challenge, idx) => (
-                          <div
+                          <label
                             key={idx}
-                            className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded"
+                            className="flex items-center gap-3 p-2 sm:p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-all"
                           >
                             <input
                               type="checkbox"
@@ -1563,42 +1654,49 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                               onChange={() =>
                                 toggleChallengeEnabled(challenge.title)
                               }
-                              className="w-4 h-4"
+                              className="w-5 h-5 flex-shrink-0"
+                              aria-label={`Enable ${challenge.title}`}
                             />
-                            <div className="flex-1">
-                              <span className="text-gray-800">
-                                {challenge.title}
-                              </span>
-                              <span
-                                className={`ml-2 px-2 py-1 rounded-full text-xs font-semibold ${getTopicColor(challenge.topic)}`}
-                              >
-                                {challenge.topic}
-                              </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-gray-800 text-sm sm:text-base font-medium">
+                                  {challenge.title}
+                                </span>
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-semibold ${getTopicColor(challenge.topic)}`}
+                                  role="status"
+                                  aria-label={`Topic: ${challenge.topic}`}
+                                >
+                                  {challenge.topic}
+                                </span>
+                              </div>
                             </div>
-                          </div>
+                          </label>
                         ))}
                       </div>
-                      <h3 className="font-bold text-lg text-gray-800 mb-4">
+                      <h3 className="font-bold text-base sm:text-lg text-gray-800 mb-3 sm:mb-4 mt-4 sm:mt-6">
                         Timer Settings
                       </h3>
-                      <p className="text-sm text-gray-600 mb-4">
-                        Customize the ideation timer duration. Current:{" "}
-                        {Math.floor(timerDuration / 60)}:
-                        {(timerDuration % 60).toString().padStart(2, "0")}
-                      </p>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                        <p className="text-xs sm:text-sm text-blue-800 font-medium">
+                          Current Duration: {Math.floor(timerDuration / 60)}:
+                          {(timerDuration % 60).toString().padStart(2, "0")}
+                        </p>
+                      </div>
 
-                      <div className="flex flex-wrap gap-3 mb-4">
+                      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3 mb-4">
                         <button
                           onClick={() => {
                             setTimerDuration(60);
                             setCustomTimerInput("");
                             setTimerError("");
                           }}
-                          className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                          className={`px-3 sm:px-4 py-2 rounded-lg font-semibold transition-all ${
                             timerDuration === 60 && customTimerInput === ""
-                              ? "bg-blue-500 text-white"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              ? "bg-blue-500 text-white shadow-md"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300"
                           }`}
+                          aria-pressed={timerDuration === 60 && customTimerInput === ""}
                         >
                           1 min
                         </button>
@@ -1608,11 +1706,12 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                             setCustomTimerInput("");
                             setTimerError("");
                           }}
-                          className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                          className={`px-3 sm:px-4 py-2 rounded-lg font-semibold transition-all ${
                             timerDuration === 180 && customTimerInput === ""
-                              ? "bg-blue-500 text-white"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              ? "bg-blue-500 text-white shadow-md"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300"
                           }`}
+                          aria-pressed={timerDuration === 180 && customTimerInput === ""}
                         >
                           3 min
                         </button>
@@ -1622,11 +1721,12 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                             setCustomTimerInput("");
                             setTimerError("");
                           }}
-                          className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                          className={`px-3 sm:px-4 py-2 rounded-lg font-semibold transition-all ${
                             timerDuration === 300 && customTimerInput === ""
-                              ? "bg-blue-500 text-white"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              ? "bg-blue-500 text-white shadow-md"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300"
                           }`}
+                          aria-pressed={timerDuration === 300 && customTimerInput === ""}
                         >
                           5 min
                         </button>
@@ -1636,11 +1736,12 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                             setCustomTimerInput("");
                             setTimerError("");
                           }}
-                          className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                          className={`px-3 sm:px-4 py-2 rounded-lg font-semibold transition-all ${
                             timerDuration === 600 && customTimerInput === ""
-                              ? "bg-blue-500 text-white"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              ? "bg-blue-500 text-white shadow-md"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300"
                           }`}
+                          aria-pressed={timerDuration === 600 && customTimerInput === ""}
                         >
                           10 min
                         </button>
@@ -1659,23 +1760,28 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           placeholder="Enter seconds (30-1800)"
                           min="30"
                           max="1800"
-                          className={`w-full p-3 border-2 rounded-lg focus:outline-none ${
+                          className={`w-full p-3 border-2 rounded-lg focus:outline-none transition-all ${
                             timerError
-                              ? "border-red-500 focus:border-red-500"
+                              ? "border-red-500 focus:border-red-500 bg-red-50"
                               : "border-gray-300 focus:border-blue-500"
                           }`}
+                          aria-invalid={!!timerError}
+                          aria-describedby={timerError ? "timer-error" : undefined}
                         />
                         {timerError && (
-                          <p className="text-sm text-red-600 mt-1">
+                          <p id="timer-error" className="text-sm text-red-600 mt-2 flex items-center gap-1" role="alert">
+                            <span>⚠️</span>
                             {timerError}
                           </p>
                         )}
                       </div>
 
-                      <p className="text-xs text-gray-500 italic">
-                        Note: Timer settings apply to the current session only
-                        and reset when the browser is closed.
-                      </p>
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                        <p className="text-xs text-gray-600 flex items-start gap-2">
+                          <span className="text-base">ℹ️</span>
+                          <span>Timer settings apply to the current session only and reset when the browser is closed.</span>
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1683,24 +1789,28 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
 
               {/* Import Preview Modal */}
               {showImportPreview && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                  <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                    <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-2xl font-bold text-gray-800">Import Challenges Preview</h2>
-                      <button onClick={() => setShowImportPreview(false)} className="text-gray-500 hover:text-gray-700">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+                  <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto modal-content my-4">
+                    <div className="flex justify-between items-center mb-4 sm:mb-6">
+                      <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Import Challenges Preview</h2>
+                      <button 
+                        onClick={() => setShowImportPreview(false)} 
+                        className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-lg transition-all"
+                        aria-label="Close import preview"
+                      >
                         <Icons.X className="w-6 h-6" />
                       </button>
                     </div>
 
                     <div className="mb-6">
-                      <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-4">
-                        <p className="text-blue-800 font-semibold">
-                          {importPreviewData.length} challenge{importPreviewData.length !== 1 ? 's' : ''} found
+                      <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3 sm:p-4 mb-4">
+                        <p className="text-blue-800 font-semibold text-sm sm:text-base">
+                          📦 {importPreviewData.length} challenge{importPreviewData.length !== 1 ? 's' : ''} found
                         </p>
                       </div>
 
-                      <h3 className="font-bold text-lg text-gray-800 mb-3">Challenges to Import:</h3>
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                      <h3 className="font-bold text-base sm:text-lg text-gray-800 mb-3">Challenges to Import:</h3>
+                      <div className="space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-2">
                         {importPreviewData.map((challenge, idx) => {
                           const isDuplicate = customChallenges.some(c => 
                             c.title.toLowerCase() === challenge.title.toLowerCase()
@@ -1709,34 +1819,41 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           return (
                             <div 
                               key={idx} 
-                              className={`p-3 rounded-lg border-2 ${
+                              className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
                                 isDuplicate 
                                   ? 'bg-yellow-50 border-yellow-300' 
-                                  : 'bg-gray-50 border-gray-200'
+                                  : 'bg-gray-50 border-gray-200 hover:border-gray-300'
                               }`}
                             >
-                              <div className="flex items-center gap-2 mb-1">
-                                <div className="font-semibold text-gray-800">{challenge.title}</div>
-                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getTopicColor(challenge.topic)}`}>
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <div className="font-semibold text-gray-800 text-sm sm:text-base">{challenge.title}</div>
+                                <span 
+                                  className={`px-2 py-1 rounded-full text-xs font-semibold ${getTopicColor(challenge.topic)}`}
+                                  role="status"
+                                  aria-label={`Topic: ${challenge.topic}`}
+                                >
                                   {challenge.topic}
                                 </span>
                                 {isDuplicate && (
-                                  <span className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-200 text-yellow-800">
-                                    Duplicate - Will Skip
+                                  <span 
+                                    className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-200 text-yellow-900 border border-yellow-400"
+                                    role="status"
+                                  >
+                                    ⚠️ Duplicate - Will Skip
                                   </span>
                                 )}
                               </div>
-                              <div className="text-sm text-gray-600">{challenge.description}</div>
+                              <div className="text-xs sm:text-sm text-gray-600">{challenge.description}</div>
                             </div>
                           );
                         })}
                       </div>
                     </div>
 
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                       <button
                         onClick={() => setShowImportPreview(false)}
-                        className="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-bold hover:bg-gray-400 transition-all"
+                        className="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-bold hover:bg-gray-400 active:bg-gray-500 transition-all"
                       >
                         Cancel
                       </button>
@@ -1745,7 +1862,7 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           confirmImport();
                           setShowImportPreview(false);
                         }}
-                        className="flex-1 bg-purple-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-600 transition-all"
+                        className="flex-1 bg-purple-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-600 active:bg-purple-700 transition-all"
                       >
                         Import All
                       </button>
@@ -1756,11 +1873,15 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
 
               {/* Email Modal */}
               {showEmailModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                  <div className="bg-white rounded-2xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-                    <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-2xl font-bold text-gray-800">Email Results</h2>
-                      <button onClick={() => setShowEmailModal(false)} className="text-gray-500 hover:text-gray-700">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+                  <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto modal-content my-4">
+                    <div className="flex justify-between items-center mb-4 sm:mb-6">
+                      <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Email Results</h2>
+                      <button 
+                        onClick={() => setShowEmailModal(false)} 
+                        className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-lg transition-all"
+                        aria-label="Close email modal"
+                      >
                         <Icons.X className="w-6 h-6" />
                       </button>
                     </div>
@@ -1768,30 +1889,33 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                     <div className="space-y-4 mb-6">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Recipients <span className="text-red-500">*</span>
+                          Recipients <span className="text-red-500" aria-label="required">*</span>
                         </label>
                         <input
                           type="text"
                           value={emailForm.recipients}
                           onChange={(e) => setEmailForm({...emailForm, recipients: e.target.value})}
                           placeholder="email@example.com, another@example.com"
-                          className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                          className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none transition-all"
+                          aria-required="true"
                         />
-                        <p className="text-xs text-gray-500 mt-1">
-                          Enter one or more email addresses separated by commas
+                        <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                          <span>ℹ️</span>
+                          <span>Enter one or more email addresses separated by commas</span>
                         </p>
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Subject <span className="text-red-500">*</span>
+                          Subject <span className="text-red-500" aria-label="required">*</span>
                         </label>
                         <input
                           type="text"
                           value={emailForm.subject}
                           onChange={(e) => setEmailForm({...emailForm, subject: e.target.value})}
                           placeholder="Design Sprint Results"
-                          className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                          className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none transition-all"
+                          aria-required="true"
                         />
                       </div>
 
@@ -1804,13 +1928,13 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           onChange={(e) => setEmailForm({...emailForm, message: e.target.value})}
                           placeholder="Add a personal message (optional)"
                           rows="4"
-                          className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                          className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none transition-all"
                         />
                       </div>
 
-                      <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4">
-                        <h3 className="font-bold text-gray-800 mb-2">Email Preview</h3>
-                        <div className="text-sm text-gray-600 whitespace-pre-wrap max-h-64 overflow-y-auto">
+                      <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-3 sm:p-4">
+                        <h3 className="font-bold text-gray-800 mb-2 text-sm sm:text-base">Email Preview</h3>
+                        <div className="text-xs sm:text-sm text-gray-600 whitespace-pre-wrap max-h-48 sm:max-h-64 overflow-y-auto bg-white p-3 rounded border border-gray-200">
                           {emailForm.message && (
                             <>
                               {emailForm.message}
@@ -1822,15 +1946,15 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                       </div>
 
                       {prototypeImages.length > 0 && (
-                        <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
-                          <div className="flex items-start gap-2">
+                        <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3 sm:p-4">
+                          <div className="flex items-start gap-2 sm:gap-3">
                             <Icons.Image className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                             <div>
                               <p className="text-sm font-semibold text-yellow-800">
-                                Note about images
+                                📎 Note about images
                               </p>
-                              <p className="text-xs text-yellow-700 mt-1">
-                                You have {prototypeImages.length} prototype image(s). Please manually attach them to your email after it opens in your email client.
+                              <p className="text-xs sm:text-sm text-yellow-700 mt-1">
+                                You have {prototypeImages.length} prototype image{prototypeImages.length !== 1 ? 's' : ''}. Please manually attach them to your email after it opens in your email client.
                               </p>
                             </div>
                           </div>
@@ -1838,16 +1962,16 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                       )}
                     </div>
 
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                       <button
                         onClick={() => setShowEmailModal(false)}
-                        className="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-bold hover:bg-gray-400 transition-all"
+                        className="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-bold hover:bg-gray-400 active:bg-gray-500 transition-all"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={openEmailClient}
-                        className="flex-1 bg-purple-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-600 transition-all flex items-center justify-center gap-2"
+                        className="flex-1 bg-purple-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-600 active:bg-purple-700 transition-all flex items-center justify-center gap-2"
                       >
                         <Icons.Mail className="w-5 h-5" />
                         Open Email Client
@@ -1949,19 +2073,31 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                       )}
                       {prototypeImages.length > 0 && (
                         <div className="bg-purple-50 p-4 rounded-lg">
-                          <strong className="text-purple-800">
+                          <strong className="text-purple-800 flex items-center gap-2">
+                            <Icons.Image className="w-5 h-5" />
                             Prototype Images:
                           </strong>
-                          <div className="flex flex-wrap gap-3 mt-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
                             {prototypeImages.map((img, idx) => (
-                              <img
-                                key={idx}
-                                src={img}
-                                alt={`Prototype sketch ${idx + 1}`}
-                                className="w-36 h-36 object-cover rounded-lg border-2 border-purple-200"
-                              />
+                              <div key={idx} className="relative">
+                                <img
+                                  src={img}
+                                  alt={`Prototype sketch ${idx + 1}`}
+                                  className="w-full aspect-square object-cover rounded-lg border-2 border-purple-200 image-thumbnail cursor-pointer"
+                                  onClick={() => window.open(img, '_blank')}
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyPress={(e) => e.key === 'Enter' && window.open(img, '_blank')}
+                                />
+                                <div className="absolute bottom-2 left-2 bg-purple-600 text-white text-xs px-2 py-1 rounded">
+                                  {idx + 1}/{prototypeImages.length}
+                                </div>
+                              </div>
                             ))}
                           </div>
+                          <p className="text-xs text-purple-700 mt-2 italic">
+                            💡 Click on any image to view full size
+                          </p>
                         </div>
                       )}
                       {iterationNotes && (
@@ -1975,50 +2111,58 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                     </div>
                   </div>
 
-                  <div className="flex gap-4 justify-center mb-6 flex-wrap">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
                     <button
                       onClick={downloadResults}
-                      className="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-600 transition-all flex items-center gap-2"
+                      className="bg-blue-500 text-white px-4 sm:px-6 py-3 rounded-xl font-bold hover:bg-blue-600 active:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                      aria-label="Download results as text file"
                     >
                       <Icons.Download className="w-5 h-5" />
-                      Download Results
+                      <span className="hidden sm:inline">Download Results</span>
+                      <span className="sm:hidden">Download TXT</span>
                     </button>
                     <button
                       onClick={downloadPDF}
-                      className="bg-red-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-600 transition-all flex items-center gap-2"
+                      className="bg-red-500 text-white px-4 sm:px-6 py-3 rounded-xl font-bold hover:bg-red-600 active:bg-red-700 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                      aria-label="Download results as PDF"
                     >
                       <Icons.Download className="w-5 h-5" />
-                      Download PDF
+                      <span className="hidden sm:inline">Download PDF</span>
+                      <span className="sm:hidden">PDF</span>
                     </button>
                     <button
                       onClick={openEmailModal}
-                      className="bg-purple-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-purple-600 transition-all flex items-center gap-2"
+                      className="bg-purple-500 text-white px-4 sm:px-6 py-3 rounded-xl font-bold hover:bg-purple-600 active:bg-purple-700 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                      aria-label="Email results"
                     >
                       <Icons.Mail className="w-5 h-5" />
-                      Email Results
+                      <span className="hidden sm:inline">Email Results</span>
+                      <span className="sm:hidden">Email</span>
                     </button>
                     <button
                       onClick={copyToClipboard}
-                      className="bg-green-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-600 transition-all flex items-center gap-2"
+                      className="bg-green-500 text-white px-4 sm:px-6 py-3 rounded-xl font-bold hover:bg-green-600 active:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                      aria-label="Copy results to clipboard"
                     >
                       <Icons.Copy className="w-5 h-5" />
-                      Copy Summary
+                      <span className="hidden sm:inline">Copy Summary</span>
+                      <span className="sm:hidden">Copy</span>
                     </button>
                   </div>
 
-                  <div className="flex gap-4 justify-center">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mt-6">
                     <button
                       onClick={() => startGame(gameMode)}
-                      className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-8 py-4 rounded-xl font-bold hover:from-blue-600 hover:to-purple-600 transition-all"
+                      className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 sm:px-8 py-4 rounded-xl text-base sm:text-lg font-bold hover:from-blue-600 hover:to-purple-600 active:from-blue-700 active:to-purple-700 transition-all shadow-lg hover:shadow-xl"
                     >
-                      Try New Challenge
+                      Try New Challenge 🎯
                     </button>
                     <button
                       onClick={() => {
                         setGameState("intro");
                         setGameMode(null);
                       }}
-                      className="bg-gray-200 text-gray-700 px-8 py-4 rounded-xl font-bold hover:bg-gray-300 transition-all"
+                      className="bg-gray-200 text-gray-700 px-6 sm:px-8 py-4 rounded-xl text-base sm:text-lg font-bold hover:bg-gray-300 active:bg-gray-400 transition-all"
                     >
                       Back to Start
                     </button>
@@ -2435,38 +2579,49 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           onChange={handleImageUpload}
                           className="hidden"
                           id="image-upload"
+                          aria-label="Upload prototype image"
                         />
                         <label
                           htmlFor="image-upload"
-                          className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-lg font-semibold hover:bg-purple-200 transition-all cursor-pointer"
+                          className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-3 rounded-lg font-semibold hover:bg-purple-200 active:bg-purple-300 transition-all cursor-pointer border-2 border-purple-200 hover:border-purple-300"
+                          role="button"
+                          tabIndex={0}
+                          onKeyPress={(e) => e.key === 'Enter' && document.getElementById('image-upload').click()}
                         >
                           <Icons.Upload className="w-5 h-5" />
-                          Upload Image
+                          <span>Upload Image</span>
                         </label>
-                        <p className="text-xs text-gray-500 mt-1">
-                          PNG, JPG, GIF, or SVG • Max 5MB • Up to 3 images
-                        </p>
+                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-2 mt-2">
+                          <p className="text-xs text-purple-800 flex items-center gap-1">
+                            <span>ℹ️</span>
+                            <span>PNG, JPG, GIF, or SVG • Max 5MB • Up to 3 images</span>
+                          </p>
+                        </div>
                       </div>
 
                       {prototypeImages.length > 0 && (
                         <div className="mb-4">
-                          <div className="font-medium text-gray-700 mb-2">
-                            Uploaded Images ({prototypeImages.length}/3)
+                          <div className="font-medium text-gray-700 mb-3 text-sm sm:text-base">
+                            📷 Uploaded Images ({prototypeImages.length}/3)
                           </div>
-                          <div className="flex flex-wrap gap-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {prototypeImages.map((img, idx) => (
                               <div key={idx} className="relative group">
                                 <img
                                   src={img}
                                   alt={`Prototype sketch ${idx + 1}`}
-                                  className="w-36 h-36 object-cover rounded-lg border-2 border-gray-300"
+                                  className="w-full aspect-square object-cover rounded-lg border-2 border-gray-300 image-thumbnail"
                                 />
                                 <button
                                   onClick={() => removeImage(idx)}
-                                  className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100"
+                                  className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 active:bg-red-700 transition-all opacity-0 group-hover:opacity-100 shadow-lg"
+                                  aria-label={`Remove image ${idx + 1}`}
                                 >
                                   <Icons.X className="w-4 h-4" />
                                 </button>
+                                <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                                  {idx + 1}/3
+                                </div>
                               </div>
                             ))}
                           </div>

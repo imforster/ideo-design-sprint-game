@@ -98,33 +98,33 @@
   - Add note about images in text export
   - _Requirements: 14.8, 14.9_
 
-- [ ] 4. Implement JSON challenge import/export
+- [x] 4. Implement JSON challenge import/export
   - Add importPreviewData state variable
   - Add showImportPreview state variable
   - Create challenge JSON schema constant
   - _Requirements: 17.1, 17.4, 17.5_
 
-- [ ] 4.1 Implement challenge export
+- [x] 4.1 Implement challenge export
   - Add "Export Challenges" button in settings modal
   - Implement exportChallenges function to create JSON with schema
   - Include version, exportDate, and challenges array
   - Trigger download with filename format: ideo-challenges-[timestamp].json
   - _Requirements: 17.10, 17.11_
 
-- [ ] 4.2 Implement challenge import file selection
+- [x] 4.2 Implement challenge import file selection
   - Add "Import Challenges" button in settings modal
   - Add file input with accept=".json"
   - Implement file reading with FileReader
   - _Requirements: 17.1, 17.2_
 
-- [ ] 4.3 Implement JSON validation
+- [x] 4.3 Implement JSON validation
   - Create validateChallengeJSON function
   - Validate JSON structure matches schema
   - Validate required fields for each challenge
   - Display clear error messages for invalid JSON
   - _Requirements: 17.3, 17.8, 17.9_
 
-- [ ] 4.4 Implement import preview modal
+- [x] 4.4 Implement import preview modal
   - Create import preview modal component
   - Display number of challenges to import
   - Show list of challenge titles with topics
@@ -132,7 +132,7 @@
   - Add "Import All" and "Cancel" buttons
   - _Requirements: 17.4, 17.5, 17.7_
 
-- [ ] 4.5 Complete import process
+- [x] 4.5 Complete import process
   - Implement import confirmation handler
   - Merge imported challenges into customChallenges state
   - Skip duplicates based on title matching

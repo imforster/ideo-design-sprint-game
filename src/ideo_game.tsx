@@ -35,6 +35,13 @@ const IDEOGame = () => {
     topic: ''
   });
   const [enabledChallenges, setEnabledChallenges] = useState(new Set<string>());
+  
+  // Import/Export state
+  const [importPreviewData, setImportPreviewData] = useState<any[]>([]);
+  const [showImportPreview, setShowImportPreview] = useState(false);
+
+  // Challenge JSON schema constant
+  const CHALLENGE_SCHEMA_VERSION = '1.0';
 
   const TOPICS = [
     'Education',
@@ -156,6 +163,125 @@ const IDEOGame = () => {
     } else {
       alert('Please fill in all fields for the challenge');
     }
+  };
+
+  const exportChallenges = () => {
+    const exportData = {
+      version: CHALLENGE_SCHEMA_VERSION,
+      exportDate: new Date().toISOString(),
+      challenges: customChallenges
+    };
+
+    const jsonString = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const timestamp = new Date().toISOString().split('T')[0];
+    a.download = `ideo-challenges-${timestamp}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const validateChallengeJSON = (data) => {
+    // Check if data is an object
+    if (!data || typeof data !== 'object') {
+      return { valid: false, error: 'Invalid JSON structure' };
+    }
+
+    // Check for version field
+    if (!data.version || data.version !== CHALLENGE_SCHEMA_VERSION) {
+      return { valid: false, error: `Invalid or missing version. Expected version ${CHALLENGE_SCHEMA_VERSION}` };
+    }
+
+    // Check for challenges array
+    if (!Array.isArray(data.challenges)) {
+      return { valid: false, error: 'Missing or invalid challenges array' };
+    }
+
+    // Check if there's at least one challenge
+    if (data.challenges.length === 0) {
+      return { valid: false, error: 'No challenges found in the file' };
+    }
+
+    // Validate each challenge has required fields
+    const requiredFields = ['title', 'description', 'persona', 'painPoint', 'topic'];
+    const missingFields: string[] = [];
+
+    for (let i = 0; i < data.challenges.length; i++) {
+      const challenge = data.challenges[i];
+      
+      for (const field of requiredFields) {
+        if (!challenge[field] || typeof challenge[field] !== 'string' || challenge[field].trim() === '') {
+          missingFields.push(`Challenge ${i + 1}: missing or invalid "${field}"`);
+        }
+      }
+    }
+
+    if (missingFields.length > 0) {
+      return { 
+        valid: false, 
+        error: `Some challenges are missing required fields:\n${missingFields.join('\n')}` 
+      };
+    }
+
+    return { valid: true };
+  };
+
+  const handleImportFile = (event: any) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      try {
+        const jsonData = JSON.parse(e.target?.result as string);
+        const validationResult = validateChallengeJSON(jsonData);
+        
+        if (validationResult.valid) {
+          setImportPreviewData(jsonData.challenges);
+          setShowImportPreview(true);
+        } else {
+          alert(`Invalid JSON file: ${validationResult.error}`);
+        }
+      } catch (error) {
+        alert('Invalid JSON file. Please check the file format and try again.');
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset the input so the same file can be selected again
+    event.target.value = '';
+  };
+
+  const confirmImport = () => {
+    // Filter out duplicates based on title matching (case-insensitive)
+    const existingTitles = customChallenges.map(c => c.title.toLowerCase());
+    const newChallenges = importPreviewData.filter(
+      challenge => !existingTitles.includes(challenge.title.toLowerCase())
+    );
+    
+    const skippedCount = importPreviewData.length - newChallenges.length;
+    
+    // Merge new challenges into customChallenges
+    setCustomChallenges([...customChallenges, ...newChallenges]);
+    
+    // Enable all imported challenges by default
+    const newEnabled = new Set(enabledChallenges);
+    newChallenges.forEach(challenge => {
+      newEnabled.add(challenge.title);
+    });
+    setEnabledChallenges(newEnabled);
+    
+    // Display success message
+    let message = `Successfully imported ${newChallenges.length} challenge${newChallenges.length !== 1 ? 's' : ''}`;
+    if (skippedCount > 0) {
+      message += `\n${skippedCount} duplicate${skippedCount !== 1 ? 's' : ''} skipped`;
+    }
+    alert(message);
+    
+    // Clear import preview data
+    setImportPreviewData([]);
   };
 
   const toggleChallengeEnabled = (title: string) => {
@@ -549,13 +675,34 @@ Play your own Design Sprint: [Your URL Here]`;
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-bold text-lg text-gray-800">Custom Challenges</h3>
-                  <button
-                    onClick={() => setShowAddChallenge(true)}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-600 transition-all flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Challenge
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowAddChallenge(true)}
+                      className="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-600 transition-all flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Challenge
+                    </button>
+                    <label className="bg-purple-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-purple-600 transition-all flex items-center gap-2 cursor-pointer">
+                      <Download className="w-4 h-4" />
+                      Import Challenges
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={handleImportFile}
+                        className="hidden"
+                      />
+                    </label>
+                    {customChallenges.length > 0 && (
+                      <button
+                        onClick={exportChallenges}
+                        className="bg-green-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-600 transition-all flex items-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Export Challenges
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {showAddChallenge && (
@@ -681,6 +828,79 @@ Play your own Design Sprint: [Your URL Here]`;
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Import Preview Modal */}
+        {showImportPreview && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">Import Challenges Preview</h2>
+                <button onClick={() => setShowImportPreview(false)} className="text-gray-500 hover:text-gray-700">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-4">
+                  <p className="text-blue-800 font-semibold">
+                    {importPreviewData.length} challenge{importPreviewData.length !== 1 ? 's' : ''} found
+                  </p>
+                </div>
+
+                <h3 className="font-bold text-lg text-gray-800 mb-3">Challenges to Import:</h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {importPreviewData.map((challenge, idx) => {
+                    const isDuplicate = customChallenges.some(c => 
+                      c.title.toLowerCase() === challenge.title.toLowerCase()
+                    );
+                    
+                    return (
+                      <div 
+                        key={idx} 
+                        className={`p-3 rounded-lg border-2 ${
+                          isDuplicate 
+                            ? 'bg-yellow-50 border-yellow-300' 
+                            : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="font-semibold text-gray-800">{challenge.title}</div>
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getTopicColor(challenge.topic)}`}>
+                            {challenge.topic}
+                          </span>
+                          {isDuplicate && (
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-200 text-yellow-800">
+                              Duplicate - Will Skip
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-600">{challenge.description}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setShowImportPreview(false)}
+                  className="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-bold hover:bg-gray-400 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    confirmImport();
+                    setShowImportPreview(false);
+                  }}
+                  className="flex-1 bg-purple-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-600 transition-all"
+                >
+                  Import All
+                </button>
               </div>
             </div>
           </div>

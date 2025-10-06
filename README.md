@@ -69,10 +69,15 @@ Ideal for:
 
 ✅ **Two Play Modes** - Solo and Team collaboration  
 ✅ **5 IDEO Phases** - Empathize, Ideate, Select, Prototype, Iterate  
-✅ **Custom Challenges** - Add your own design problems  
+✅ **Custom Challenges** - Add your own design problems with topics  
+✅ **Challenge Selection** - Enable/disable specific challenges  
+✅ **Challenge Import/Export** - Share challenge sets via JSON  
+✅ **Image Upload** - Add sketches and visuals to prototypes  
+✅ **PDF Export** - Professional formatted reports with images  
+✅ **Email Integration** - Send results directly from the app  
 ✅ **Download Results** - Export complete sprint reports  
 ✅ **Share Results** - Copy summaries to clipboard  
-✅ **Timed Ideation** - 3-minute brainstorming sprints  
+✅ **Customizable Timer** - Adjust ideation duration (30s-30min)  
 ✅ **Score Tracking** - Gamified points system  
 ✅ **Offline Ready** - Works without internet
 
@@ -153,28 +158,58 @@ Quick start guide and overview
 
 ## 🔧 Customization
 
-The game can be customized by editing `index.html`:
+### Challenge Management
 
-### Add Default Challenges
+**Add Custom Challenges:**
+1. Click Settings icon (⚙️) on intro screen
+2. Click "Add Challenge"
+3. Fill in title, description, persona, pain point, and topic
+4. Save and use immediately
 
-Find the `defaultChallenges` array (around line 150) and add:
+**Challenge Topics:**
+- Education, Business, Healthcare, Technology
+- Sustainability, Social Impact, Product Design, Service Design
+- Or create your own custom topic
+
+**Enable/Disable Challenges:**
+1. Open Settings
+2. Go to Challenge Selection section
+3. Check/uncheck challenges to enable/disable
+4. Only enabled challenges will appear in sprints
+
+**Import/Export Challenges:**
+- Export: Download your custom challenges as JSON
+- Import: Load challenge sets from JSON files
+- Share challenge packs with colleagues
+
+### Timer Customization
+
+**Adjust Ideation Timer:**
+1. Open Settings
+2. Go to Timer Settings section
+3. Choose preset (1, 3, 5, or 10 minutes)
+4. Or enter custom duration (30 seconds to 30 minutes)
+5. Timer applies to all sprints in current session
+
+### Advanced Customization
+
+Edit `index.html` directly for deeper changes:
+
+**Add Default Challenges:**
+Find the `defaultChallenges` array and add:
 
 ```javascript
 {
     title: "Your Challenge Title",
     description: "Problem description",
     persona: "User persona details",
-    painPoint: "Main pain point"
+    painPoint: "Main pain point",
+    topic: "Your Topic"
 }
 ```
 
-### Change Colors/Styling
-
+**Change Colors/Styling:**
 All styling uses Tailwind CSS classes. Modify class names to change appearance.
-
-### Adjust Timer Duration
-
-Find `setTimer(180)` and change the number (seconds).
 
 ---
 
@@ -292,8 +327,14 @@ After completing a sprint, users will:
 ### What's New in v3.0
 
 - Team multiplayer mode
-- Custom challenge creator
-- Download/share results
+- Custom challenge creator with topics
+- Challenge selection and management
+- JSON import/export for challenge sets
+- Image upload for prototypes (up to 3 images)
+- PDF export with embedded images
+- Email integration for sharing results
+- Customizable timer (30 seconds to 30 minutes)
+- Download/share results in multiple formats
 - Improved UI/UX
 - Better mobile support
 

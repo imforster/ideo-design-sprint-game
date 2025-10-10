@@ -15,6 +15,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
       body {
         margin: 0;
@@ -36,14 +37,19 @@
 
       /* Improve touch targets for mobile */
       @media (max-width: 768px) {
-        button, input[type="checkbox"], select {
+        button,
+        input[type="checkbox"],
+        select {
           min-height: 44px;
           min-width: 44px;
         }
       }
 
       /* Smooth transitions for all interactive elements */
-      button, input, textarea, select {
+      button,
+      input,
+      textarea,
+      select {
         transition: all 0.2s ease-in-out;
       }
 
@@ -62,7 +68,9 @@
 
       /* Image thumbnail hover effect */
       .image-thumbnail {
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        transition:
+          transform 0.2s ease-in-out,
+          box-shadow 0.2s ease-in-out;
       }
 
       .image-thumbnail:hover {
@@ -76,6 +84,16 @@
 
     <script type="text/babel">
       const { useState, useEffect } = React;
+
+      // Supabase configuration
+      const SUPABASE_URL = "https://iyrrkpyulelvxrbvnjkt.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5cnJrcHl1bGVsdnhyYnZuamt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwNDc1NjYsImV4cCI6MjA3NTYyMzU2Nn0.cP0Sg6aYVoEJbuDsGFT1yPT1TwRmKB7jjmkCxKJUkS0";
+
+      const supabase = window.supabase?.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY,
+      );
 
       // Lucide React icons as inline SVGs
       const Icons = {
@@ -279,7 +297,7 @@
         const [emailForm, setEmailForm] = useState({
           recipients: "",
           subject: "",
-          message: ""
+          message: "",
         });
 
         const [teamName, setTeamName] = useState("");
@@ -298,13 +316,21 @@
           topic: "",
         });
         const [enabledChallenges, setEnabledChallenges] = useState(new Set());
-        
+
+        // Collaborative session state
+        const [sessionId, setSessionId] = useState(null);
+        const [isHost, setIsHost] = useState(false);
+        const [userName, setUserName] = useState("");
+        const [joinCode, setJoinCode] = useState("");
+        const [participants, setParticipants] = useState([]);
+        const [isCollaborative, setIsCollaborative] = useState(false);
+
         // Import/Export state
         const [importPreviewData, setImportPreviewData] = useState([]);
         const [showImportPreview, setShowImportPreview] = useState(false);
 
         // Challenge JSON schema constant
-        const CHALLENGE_SCHEMA_VERSION = '1.0';
+        const CHALLENGE_SCHEMA_VERSION = "1.0";
 
         const TOPICS = [
           "Education",
@@ -324,13 +350,19 @@
             Business: "bg-purple-100 text-purple-900 border border-purple-300",
             Healthcare: "bg-red-100 text-red-900 border border-red-300",
             Technology: "bg-cyan-100 text-cyan-900 border border-cyan-300",
-            Sustainability: "bg-green-100 text-green-900 border border-green-300",
-            "Social Impact": "bg-orange-100 text-orange-900 border border-orange-300",
-            "Product Design": "bg-pink-100 text-pink-900 border border-pink-300",
-            "Service Design": "bg-indigo-100 text-indigo-900 border border-indigo-300",
+            Sustainability:
+              "bg-green-100 text-green-900 border border-green-300",
+            "Social Impact":
+              "bg-orange-100 text-orange-900 border border-orange-300",
+            "Product Design":
+              "bg-pink-100 text-pink-900 border border-pink-300",
+            "Service Design":
+              "bg-indigo-100 text-indigo-900 border border-indigo-300",
             Custom: "bg-gray-100 text-gray-900 border border-gray-300",
           };
-          return colors[topic] || "bg-gray-100 text-gray-900 border border-gray-300";
+          return (
+            colors[topic] || "bg-gray-100 text-gray-900 border border-gray-300"
+          );
         };
 
         const defaultChallenges = [
@@ -458,15 +490,15 @@
           const exportData = {
             version: CHALLENGE_SCHEMA_VERSION,
             exportDate: new Date().toISOString(),
-            challenges: customChallenges
+            challenges: customChallenges,
           };
 
           const jsonString = JSON.stringify(exportData, null, 2);
-          const blob = new Blob([jsonString], { type: 'application/json' });
+          const blob = new Blob([jsonString], { type: "application/json" });
           const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
+          const a = document.createElement("a");
           a.href = url;
-          const timestamp = new Date().toISOString().split('T')[0];
+          const timestamp = new Date().toISOString().split("T")[0];
           a.download = `ideo-challenges-${timestamp}.json`;
           a.click();
           URL.revokeObjectURL(url);
@@ -474,43 +506,61 @@
 
         const validateChallengeJSON = (data) => {
           // Check if data is an object
-          if (!data || typeof data !== 'object') {
-            return { valid: false, error: 'Invalid JSON structure' };
+          if (!data || typeof data !== "object") {
+            return { valid: false, error: "Invalid JSON structure" };
           }
 
           // Check for version field
           if (!data.version || data.version !== CHALLENGE_SCHEMA_VERSION) {
-            return { valid: false, error: `Invalid or missing version. Expected version ${CHALLENGE_SCHEMA_VERSION}` };
+            return {
+              valid: false,
+              error: `Invalid or missing version. Expected version ${CHALLENGE_SCHEMA_VERSION}`,
+            };
           }
 
           // Check for challenges array
           if (!Array.isArray(data.challenges)) {
-            return { valid: false, error: 'Missing or invalid challenges array' };
+            return {
+              valid: false,
+              error: "Missing or invalid challenges array",
+            };
           }
 
           // Check if there's at least one challenge
           if (data.challenges.length === 0) {
-            return { valid: false, error: 'No challenges found in the file' };
+            return { valid: false, error: "No challenges found in the file" };
           }
 
           // Validate each challenge has required fields
-          const requiredFields = ['title', 'description', 'persona', 'painPoint', 'topic'];
+          const requiredFields = [
+            "title",
+            "description",
+            "persona",
+            "painPoint",
+            "topic",
+          ];
           const missingFields = [];
 
           for (let i = 0; i < data.challenges.length; i++) {
             const challenge = data.challenges[i];
-            
+
             for (const field of requiredFields) {
-              if (!challenge[field] || typeof challenge[field] !== 'string' || challenge[field].trim() === '') {
-                missingFields.push(`Challenge ${i + 1}: missing or invalid "${field}"`);
+              if (
+                !challenge[field] ||
+                typeof challenge[field] !== "string" ||
+                challenge[field].trim() === ""
+              ) {
+                missingFields.push(
+                  `Challenge ${i + 1}: missing or invalid "${field}"`,
+                );
               }
             }
           }
 
           if (missingFields.length > 0) {
-            return { 
-              valid: false, 
-              error: `Some challenges are missing required fields:\n${missingFields.join('\n')}` 
+            return {
+              valid: false,
+              error: `Some challenges are missing required fields:\n${missingFields.join("\n")}`,
             };
           }
 
@@ -526,7 +576,7 @@
             try {
               const jsonData = JSON.parse(e.target.result);
               const validationResult = validateChallengeJSON(jsonData);
-              
+
               if (validationResult.valid) {
                 setImportPreviewData(jsonData.challenges);
                 setShowImportPreview(true);
@@ -534,41 +584,46 @@
                 alert(`Invalid JSON file: ${validationResult.error}`);
               }
             } catch (error) {
-              alert('Invalid JSON file. Please check the file format and try again.');
+              alert(
+                "Invalid JSON file. Please check the file format and try again.",
+              );
             }
           };
           reader.readAsText(file);
-          
+
           // Reset the input so the same file can be selected again
-          event.target.value = '';
+          event.target.value = "";
         };
 
         const confirmImport = () => {
           // Filter out duplicates based on title matching (case-insensitive)
-          const existingTitles = customChallenges.map(c => c.title.toLowerCase());
-          const newChallenges = importPreviewData.filter(
-            challenge => !existingTitles.includes(challenge.title.toLowerCase())
+          const existingTitles = customChallenges.map((c) =>
+            c.title.toLowerCase(),
           );
-          
+          const newChallenges = importPreviewData.filter(
+            (challenge) =>
+              !existingTitles.includes(challenge.title.toLowerCase()),
+          );
+
           const skippedCount = importPreviewData.length - newChallenges.length;
-          
+
           // Merge new challenges into customChallenges
           setCustomChallenges([...customChallenges, ...newChallenges]);
-          
+
           // Enable all imported challenges by default
           const newEnabled = new Set(enabledChallenges);
-          newChallenges.forEach(challenge => {
+          newChallenges.forEach((challenge) => {
             newEnabled.add(challenge.title);
           });
           setEnabledChallenges(newEnabled);
-          
+
           // Display success message
-          let message = `Successfully imported ${newChallenges.length} challenge${newChallenges.length !== 1 ? 's' : ''}`;
+          let message = `Successfully imported ${newChallenges.length} challenge${newChallenges.length !== 1 ? "s" : ""}`;
           if (skippedCount > 0) {
-            message += `\n${skippedCount} duplicate${skippedCount !== 1 ? 's' : ''} skipped`;
+            message += `\n${skippedCount} duplicate${skippedCount !== 1 ? "s" : ""} skipped`;
           }
           alert(message);
-          
+
           // Clear import preview data
           setImportPreviewData([]);
         };
@@ -596,11 +651,207 @@
           return allChallenges.filter((c) => enabledChallenges.has(c.title));
         };
 
+        // Collaborative session functions
+        const createSession = async () => {
+          if (!supabase) {
+            alert(
+              "Supabase not configured. Please add your Supabase URL and key.",
+            );
+            return;
+          }
+
+          try {
+            const hostId = crypto.randomUUID();
+            const { data: session, error } = await supabase
+              .from("sessions")
+              .insert({ host_id: hostId })
+              .select()
+              .single();
+
+            if (error) throw error;
+
+            const initialData = {
+              currentPhase: 0,
+              timerActive: false,
+              timerDuration: 180,
+              challenge: null,
+              allIdeas: [],
+              selectedIdeas: [],
+              prototype: null,
+              prototypeImages: [],
+              hmwStatement: "",
+              iterationNotes: "",
+              participants: [{ id: hostId, name: userName, isHost: true }],
+              collaborativeScore: 0,
+            };
+
+            await supabase.from("session_data").insert({
+              session_id: session.id,
+              data: initialData,
+            });
+
+            setSessionId(session.id);
+            setIsHost(true);
+            setIsCollaborative(true);
+            setParticipants([{ id: hostId, name: userName, isHost: true }]);
+          } catch (error) {
+            console.error("Error creating session:", error);
+            alert("Failed to create session. Please try again.");
+          }
+        };
+
+        const joinSession = async (code) => {
+          if (!supabase) {
+            alert(
+              "Supabase not configured. Please add your Supabase URL and key.",
+            );
+            return;
+          }
+
+          try {
+            const { data, error } = await supabase
+              .from("session_data")
+              .select("*")
+              .eq("session_id", code)
+              .single();
+
+            if (error || !data) {
+              alert("Session not found. Please check the code.");
+              return;
+            }
+
+            const participantId = crypto.randomUUID();
+            const updatedParticipants = [
+              ...data.data.participants,
+              { id: participantId, name: userName, isHost: false },
+            ];
+
+            const updatedData = {
+              ...data.data,
+              participants: updatedParticipants,
+            };
+
+            await supabase
+              .from("session_data")
+              .update({ data: updatedData })
+              .eq("session_id", code);
+
+            setSessionId(code);
+            setIsHost(false);
+            setIsCollaborative(true);
+            setParticipants(updatedParticipants);
+
+            // Sync local state with session
+            setCurrentPhase(data.data.currentPhase);
+            setChallenge(data.data.challenge);
+            setIdeas(data.data.allIdeas);
+            setSelectedIdeas(data.data.selectedIdeas);
+            setPrototype(data.data.prototype);
+            setPrototypeImages(data.data.prototypeImages || []);
+            setHmwStatement(data.data.hmwStatement);
+            setIterationNotes(data.data.iterationNotes);
+            setTimerDuration(data.data.timerDuration);
+
+            if (data.data.challenge) {
+              setGameState("playing");
+              setGameMode("collaborative");
+            }
+          } catch (error) {
+            console.error("Error joining session:", error);
+            alert("Failed to join session. Please try again.");
+          }
+        };
+
+        const updateSessionData = async (updates) => {
+          if (!sessionId || !supabase) return;
+
+          try {
+            const { data: current } = await supabase
+              .from("session_data")
+              .select("data")
+              .eq("session_id", sessionId)
+              .single();
+
+            const updatedData = { ...current.data, ...updates };
+
+            await supabase
+              .from("session_data")
+              .update({ data: updatedData })
+              .eq("session_id", sessionId);
+          } catch (error) {
+            console.error("Error updating session:", error);
+          }
+        };
+
+        const addIdeaToSession = async (idea) => {
+          const newIdea = {
+            id: crypto.randomUUID(),
+            text: idea,
+            author: userName,
+            timestamp: new Date().toISOString(),
+          };
+
+          const updatedIdeas = [...ideas, newIdea];
+          setIdeas(updatedIdeas);
+
+          if (isCollaborative) {
+            await updateSessionData({ allIdeas: updatedIdeas });
+          }
+        };
+
+        // Real-time subscription effect
+        useEffect(() => {
+          if (!sessionId || !supabase) return;
+
+          const subscription = supabase
+            .channel("session_changes")
+            .on(
+              "postgres_changes",
+              {
+                event: "UPDATE",
+                schema: "public",
+                table: "session_data",
+                filter: `session_id=eq.${sessionId}`,
+              },
+              (payload) => {
+                const data = payload.new.data;
+
+                // Always sync phase, gameState, and other critical state
+                setCurrentPhase(data.currentPhase);
+                setChallenge(data.challenge);
+                setIdeas(data.allIdeas || []);
+                setSelectedIdeas(data.selectedIdeas || []);
+                setPrototype(data.prototype);
+                setPrototypeImages(data.prototypeImages || []);
+                setHmwStatement(data.hmwStatement || "");
+                setIterationNotes(data.iterationNotes || "");
+                setParticipants(data.participants || []);
+                setTimerActive(data.timerActive || false);
+                setTimer(data.timer || timerDuration);
+                if (data.gameState) {
+                  setGameState(data.gameState);
+                }
+                if (data.collaborativeScore !== undefined) {
+                  setScore(data.collaborativeScore);
+                }
+              },
+            )
+            .subscribe();
+
+          return () => subscription.unsubscribe();
+        }, [sessionId, isHost, ideas.length, timerDuration]);
+
         const startGame = (mode) => {
           if (mode === "team" && (!teamName || teamMembers.length === 0)) {
             alert("Please enter a team name and add at least one team member");
             return;
           }
+
+          if (mode === "collaborative" && !isHost) {
+            alert("Only the host can start the game");
+            return;
+          }
+
           const enabled = getEnabledChallenges();
           if (enabled.length === 0) {
             alert(
@@ -608,6 +859,7 @@
             );
             return;
           }
+
           const randomChallenge =
             enabled[Math.floor(Math.random() * enabled.length)];
           setChallenge(randomChallenge);
@@ -622,67 +874,160 @@
           setIterationNotes("");
           setScore(0);
           setTimer(timerDuration);
+
+          // Update session data for collaborative mode
+          if (mode === "collaborative" && isCollaborative) {
+            updateSessionData({
+              challenge: randomChallenge,
+              currentPhase: 0,
+              allIdeas: [],
+              selectedIdeas: [],
+              prototype: null,
+              prototypeImages: [],
+              hmwStatement: "",
+              iterationNotes: "",
+              timer: timerDuration,
+            });
+          }
         };
 
-        const handleSubmit = () => {
+        const handleSubmit = async () => {
           if (currentPhase === 0) {
             if (userInput.toLowerCase().includes("how might we")) {
               setHmwStatement(userInput);
-              setScore(score + 20);
+              const newScore = score + 20;
+              setScore(newScore);
               setUserInput("");
-              nextPhase();
+
+              if (isCollaborative) {
+                setCurrentPhase(1);
+                await updateSessionData({ 
+                  hmwStatement: userInput,
+                  currentPhase: 1,
+                  timerActive: false,
+                  collaborativeScore: newScore
+                });
+              } else {
+                nextPhase();
+              }
             } else {
               alert("Try starting with 'How might we...'");
             }
           } else if (currentPhase === 1) {
             if (userInput.trim()) {
-              const newIdea =
-                gameMode === "team" && playerName
-                  ? `${userInput.trim()} [by ${playerName}]`
-                  : userInput.trim();
-              setIdeas([...ideas, newIdea]);
+              if (isCollaborative) {
+                const newScore = score + 5;
+                setScore(newScore);
+                await addIdeaToSession(userInput.trim());
+                await updateSessionData({ collaborativeScore: newScore });
+              } else {
+                const newIdea =
+                  gameMode === "team" && playerName
+                    ? `${userInput.trim()} [by ${playerName}]`
+                    : userInput.trim();
+                setIdeas([...ideas, newIdea]);
+              }
               setScore(score + 5);
               setUserInput("");
             }
           } else if (currentPhase === 3) {
             if (userInput.trim().length > 20) {
               setPrototype(userInput);
-              setScore(score + 30);
+              const newScore = score + 30;
+              setScore(newScore);
               setUserInput("");
-              nextPhase();
+              
+              if (isCollaborative) {
+                setCurrentPhase(4);
+                await updateSessionData({ 
+                  prototype: userInput,
+                  currentPhase: 4,
+                  timerActive: false,
+                  collaborativeScore: newScore
+                });
+              } else {
+                nextPhase();
+              }
             } else {
               alert("Describe your prototype in more detail!");
             }
           } else if (currentPhase === 4) {
             if (userInput.trim().length > 15) {
               setIterationNotes(userInput);
-              setScore(score + 25);
+              const newScore = score + 25;
+              setScore(newScore);
               setGameState("complete");
+
+              if (isCollaborative) {
+                await updateSessionData({ 
+                  iterationNotes: userInput,
+                  gameState: "complete",
+                  collaborativeScore: newScore
+                });
+              }
             } else {
               alert("Share more thoughts on how to improve!");
             }
           }
         };
 
-        const nextPhase = () => {
+        const nextPhase = async () => {
+          let newPhase = currentPhase;
+
           if (currentPhase === 1 && ideas.length >= 5) {
-            setCurrentPhase(2);
+            newPhase = 2;
             setTimerActive(false);
           } else if (currentPhase === 2 && selectedIdeas.length === 3) {
-            setCurrentPhase(3);
+            newPhase = 3;
           } else if (currentPhase < phases.length - 1) {
-            setCurrentPhase(currentPhase + 1);
+            newPhase = currentPhase + 1;
+          }
+
+          setCurrentPhase(newPhase);
+
+          // Update session data for collaborative mode (only host can advance phases)
+          if (isCollaborative && isHost) {
+            await updateSessionData({
+              currentPhase: newPhase,
+              timerActive: false,
+            });
           }
         };
 
-        const toggleIdeaSelection = (idea) => {
-          if (selectedIdeas.includes(idea)) {
-            setSelectedIdeas(selectedIdeas.filter((i) => i !== idea));
+        const toggleIdeaSelection = async (idea) => {
+          let newSelectedIdeas;
+          const ideaId = typeof idea === 'object' ? idea.id : idea;
+          
+          const isAlreadySelected = selectedIdeas.some(selected => 
+            typeof selected === 'object' ? selected.id === ideaId : selected === ideaId
+          );
+
+          if (isAlreadySelected) {
+            newSelectedIdeas = selectedIdeas.filter((i) => {
+              const iId = typeof i === 'object' ? i.id : i;
+              return iId !== ideaId;
+            });
           } else if (selectedIdeas.length < 3) {
-            setSelectedIdeas([...selectedIdeas, idea]);
+            newSelectedIdeas = [...selectedIdeas, idea];
             if (selectedIdeas.length === 2) {
-              setScore(score + 20);
+              const newScore = score + 20;
+              setScore(newScore);
+              if (isCollaborative) {
+                await updateSessionData({ 
+                  selectedIdeas: newSelectedIdeas,
+                  collaborativeScore: newScore
+                });
+                return;
+              }
             }
+          } else {
+            return;
+          }
+
+          setSelectedIdeas(newSelectedIdeas);
+
+          if (isCollaborative) {
+            await updateSessionData({ selectedIdeas: newSelectedIdeas });
           }
         };
 
@@ -692,97 +1037,132 @@
             if (!files || files.length === 0) return;
 
             const file = files[0];
-            
+
             // Validate file exists
             if (!file) {
-              alert('No file selected. Please try again.');
-              event.target.value = '';
+              alert("No file selected. Please try again.");
+              event.target.value = "";
               return;
             }
 
             // Validate file type
-            const validTypes = ['image/png', 'image/jpg', 'image/jpeg', 'image/gif', 'image/svg+xml'];
+            const validTypes = [
+              "image/png",
+              "image/jpg",
+              "image/jpeg",
+              "image/gif",
+              "image/svg+xml",
+            ];
             if (!validTypes.includes(file.type)) {
-              alert('Please upload an image file (PNG, JPG, JPEG, GIF, or SVG)');
-              event.target.value = '';
+              alert(
+                "Please upload an image file (PNG, JPG, JPEG, GIF, or SVG)",
+              );
+              event.target.value = "";
               return;
             }
 
             // Validate file size (max 5MB)
             const maxSize = 5 * 1024 * 1024; // 5MB in bytes
             if (file.size > maxSize) {
-              alert('Image file must be under 5MB. Please choose a smaller file.');
-              event.target.value = '';
+              alert(
+                "Image file must be under 5MB. Please choose a smaller file.",
+              );
+              event.target.value = "";
               return;
             }
 
             // Check if already at max images
             if (prototypeImages.length >= 3) {
-              alert('Maximum 3 images allowed. Please remove an image before adding another.');
-              event.target.value = '';
+              alert(
+                "Maximum 3 images allowed. Please remove an image before adding another.",
+              );
+              event.target.value = "";
               return;
             }
 
             // Read file and convert to base64
             const reader = new FileReader();
-            
+
             reader.onload = (e) => {
               try {
                 const result = e.target.result;
                 if (!result) {
-                  throw new Error('Failed to read image data');
+                  throw new Error("Failed to read image data");
                 }
                 setPrototypeImages([...prototypeImages, result]);
-                event.target.value = ''; // Reset input
+                event.target.value = ""; // Reset input
               } catch (error) {
-                console.error('Error processing image:', error);
-                alert('Failed to process image. Please try a different file.');
-                event.target.value = '';
+                console.error("Error processing image:", error);
+                alert("Failed to process image. Please try a different file.");
+                event.target.value = "";
               }
             };
-            
+
             reader.onerror = (error) => {
-              console.error('FileReader error:', error);
-              alert('Error reading file. Please try again with a different file.');
-              event.target.value = '';
+              console.error("FileReader error:", error);
+              alert(
+                "Error reading file. Please try again with a different file.",
+              );
+              event.target.value = "";
             };
-            
+
             reader.readAsDataURL(file);
           } catch (error) {
-            console.error('Error in handleImageUpload:', error);
-            alert('An unexpected error occurred while uploading the image. Please try again.');
+            console.error("Error in handleImageUpload:", error);
+            alert(
+              "An unexpected error occurred while uploading the image. Please try again.",
+            );
             if (event.target) {
-              event.target.value = '';
+              event.target.value = "";
             }
           }
         };
 
         const removeImage = (index) => {
           try {
-            if (typeof index !== 'number' || index < 0 || index >= prototypeImages.length) {
-              console.error('Invalid image index:', index);
+            if (
+              typeof index !== "number" ||
+              index < 0 ||
+              index >= prototypeImages.length
+            ) {
+              console.error("Invalid image index:", index);
               return;
             }
             setPrototypeImages(prototypeImages.filter((_, i) => i !== index));
           } catch (error) {
-            console.error('Error removing image:', error);
-            alert('Failed to remove image. Please try again.');
+            console.error("Error removing image:", error);
+            alert("Failed to remove image. Please try again.");
           }
         };
 
-        const startTimer = () => {
+        const startTimer = async () => {
           setTimerActive(true);
-          const interval = setInterval(() => {
+          
+          if (isCollaborative && isHost) {
+            await updateSessionData({ 
+              timerActive: true,
+              timer: timer
+            });
+          }
+          
+          const interval = setInterval(async () => {
             setTimer((prev) => {
-              if (prev <= 1) {
+              const newTimer = prev <= 1 ? 0 : prev - 1;
+              
+              if (newTimer === 0) {
                 clearInterval(interval);
                 setTimerActive(false);
                 if (ideas.length >= 5) {
                   nextPhase();
                 }
-                return 0;
               }
-              return prev - 1;
+              
+              // Sync timer every second in collaborative mode (host only)
+              if (isCollaborative && isHost && newTimer > 0) {
+                updateSessionData({ timer: newTimer });
+              }
+              
+              return newTimer;
             });
           }, 1000);
         };
@@ -826,7 +1206,9 @@
         const downloadResults = () => {
           try {
             if (!challenge) {
-              alert('No results to download. Please complete a design sprint first.');
+              alert(
+                "No results to download. Please complete a design sprint first.",
+              );
               return;
             }
 
@@ -844,10 +1226,17 @@ HOW MIGHT WE STATEMENT
 ${hmwStatement}
 
 IDEAS GENERATED (${ideas.length} total)
-${ideas.map((idea, i) => `${i + 1}. ${idea}`).join("\n")}
+${ideas.map((idea, i) => {
+  const ideaText = typeof idea === 'object' ? idea.text : idea;
+  const ideaAuthor = typeof idea === 'object' ? ` (by ${idea.author})` : '';
+  return `${i + 1}. ${ideaText}${ideaAuthor}`;
+}).join("\n")}
 
 TOP 3 SELECTED IDEAS
-${selectedIdeas.map((idea, i) => `${i + 1}. ${idea}`).join("\n")}
+${selectedIdeas.map((idea, i) => {
+  const ideaText = typeof idea === 'object' ? idea.text : idea;
+  return `${i + 1}. ${ideaText}`;
+}).join("\n")}
 
 PROTOTYPE
 ${prototype}
@@ -864,20 +1253,27 @@ Generated by IDEO Design Sprint Game
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            const sanitizedTeamName = (teamName || "solo").replace(/[^a-z0-9]/gi, '-');
+            const sanitizedTeamName = (teamName || "solo").replace(
+              /[^a-z0-9]/gi,
+              "-",
+            );
             a.download = `design-sprint-${sanitizedTeamName}-${Date.now()}.txt`;
             a.click();
             URL.revokeObjectURL(url);
           } catch (error) {
-            console.error('Error downloading results:', error);
-            alert('Failed to download results. Please try copying to clipboard instead.');
+            console.error("Error downloading results:", error);
+            alert(
+              "Failed to download results. Please try copying to clipboard instead.",
+            );
           }
         };
 
         const copyToClipboard = () => {
           try {
             if (!challenge) {
-              alert('No results to copy. Please complete a design sprint first.');
+              alert(
+                "No results to copy. Please complete a design sprint first.",
+              );
               return;
             }
 
@@ -892,32 +1288,41 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
 
             if (!navigator.clipboard) {
               // Fallback for browsers that don't support clipboard API
-              const textArea = document.createElement('textarea');
+              const textArea = document.createElement("textarea");
               textArea.value = text;
-              textArea.style.position = 'fixed';
-              textArea.style.left = '-999999px';
+              textArea.style.position = "fixed";
+              textArea.style.left = "-999999px";
               document.body.appendChild(textArea);
               textArea.select();
               try {
-                document.execCommand('copy');
-                alert('Results copied to clipboard!');
+                document.execCommand("copy");
+                alert("Results copied to clipboard!");
               } catch (err) {
-                console.error('Fallback copy failed:', err);
-                alert('Failed to copy to clipboard. Please try downloading results instead.');
+                console.error("Fallback copy failed:", err);
+                alert(
+                  "Failed to copy to clipboard. Please try downloading results instead.",
+                );
               }
               document.body.removeChild(textArea);
               return;
             }
 
-            navigator.clipboard.writeText(text).then(() => {
-              alert("Results copied to clipboard!");
-            }).catch((error) => {
-              console.error('Error copying to clipboard:', error);
-              alert('Failed to copy to clipboard. Please try downloading results instead.');
-            });
+            navigator.clipboard
+              .writeText(text)
+              .then(() => {
+                alert("Results copied to clipboard!");
+              })
+              .catch((error) => {
+                console.error("Error copying to clipboard:", error);
+                alert(
+                  "Failed to copy to clipboard. Please try downloading results instead.",
+                );
+              });
           } catch (error) {
-            console.error('Error in copyToClipboard:', error);
-            alert('Failed to copy to clipboard. Please try downloading results instead.');
+            console.error("Error in copyToClipboard:", error);
+            alert(
+              "Failed to copy to clipboard. Please try downloading results instead.",
+            );
           }
         };
 
@@ -925,299 +1330,380 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
           try {
             // Check if jsPDF is available
             if (!window.jspdf || !window.jspdf.jsPDF) {
-              alert('PDF library not loaded. Please refresh the page and try again.');
+              alert(
+                "PDF library not loaded. Please refresh the page and try again.",
+              );
               return;
             }
 
             // Validate required data
             if (!challenge) {
-              alert('No challenge data available. Please complete a design sprint first.');
+              alert(
+                "No challenge data available. Please complete a design sprint first.",
+              );
               return;
             }
 
             // Access jsPDF from the global window object
             const { jsPDF } = window.jspdf;
-          const doc = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: 'a4'
-          });
+            const doc = new jsPDF({
+              orientation: "portrait",
+              unit: "mm",
+              format: "a4",
+            });
 
-          const pageWidth = 210; // A4 width in mm
-          const pageHeight = 297; // A4 height in mm
-          const margin = 20;
-          const contentWidth = pageWidth - (2 * margin);
-          let yPosition = margin;
+            const pageWidth = 210; // A4 width in mm
+            const pageHeight = 297; // A4 height in mm
+            const margin = 20;
+            const contentWidth = pageWidth - 2 * margin;
+            let yPosition = margin;
 
-          // Color palette
-          const colors = {
-            purple: [147, 51, 234], // #9333EA
-            gold: [234, 179, 8], // #EAB308
-            darkGray: [31, 41, 55], // #1F2937
-            mediumGray: [107, 114, 128], // #6B7280
-            lightGray: [243, 244, 246], // #F3F4F6
-            blue: [59, 130, 246], // #3B82F6
-            green: [34, 197, 94], // #22C55E
-            pink: [236, 72, 153] // #EC4899
-          };
+            // Color palette
+            const colors = {
+              purple: [147, 51, 234], // #9333EA
+              gold: [234, 179, 8], // #EAB308
+              darkGray: [31, 41, 55], // #1F2937
+              mediumGray: [107, 114, 128], // #6B7280
+              lightGray: [243, 244, 246], // #F3F4F6
+              blue: [59, 130, 246], // #3B82F6
+              green: [34, 197, 94], // #22C55E
+              pink: [236, 72, 153], // #EC4899
+            };
 
-          // Helper function to draw a trophy/badge icon
-          const drawTrophyBadge = (x, y, size) => {
-            const centerX = x + size / 2;
-            const centerY = y + size / 2;
-            const radius = size / 2;
-            
-            // Draw gold circle
-            doc.setFillColor(...colors.gold);
-            doc.circle(centerX, centerY, radius, 'F');
-            
-            // Draw checkmark
-            doc.setLineWidth(2);
-            doc.setDrawColor(255, 255, 255);
-            doc.line(centerX - radius * 0.3, centerY, centerX - radius * 0.1, centerY + radius * 0.3);
-            doc.line(centerX - radius * 0.1, centerY + radius * 0.3, centerX + radius * 0.4, centerY - radius * 0.3);
-          };
+            // Helper function to draw a trophy/badge icon
+            const drawTrophyBadge = (x, y, size) => {
+              const centerX = x + size / 2;
+              const centerY = y + size / 2;
+              const radius = size / 2;
 
-          // Helper function to add text with word wrapping
-          const addText = (text, fontSize, isBold = false, color = colors.darkGray, align = 'left') => {
-            doc.setFontSize(fontSize);
-            doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-            doc.setTextColor(...color);
-            
-            const lines = doc.splitTextToSize(text, contentWidth);
-            
-            // Check if we need a new page
-            if (yPosition + (lines.length * fontSize * 0.35) > pageHeight - margin) {
-              doc.addPage();
-              yPosition = margin;
-            }
-            
-            if (align === 'center') {
-              lines.forEach(line => {
-                const textWidth = doc.getTextWidth(line);
-                doc.text(line, (pageWidth - textWidth) / 2, yPosition);
-                yPosition += fontSize * 0.35;
-              });
-            } else {
-              doc.text(lines, margin, yPosition);
-              yPosition += lines.length * fontSize * 0.35;
-            }
-          };
+              // Draw gold circle
+              doc.setFillColor(...colors.gold);
+              doc.circle(centerX, centerY, radius, "F");
 
-          // Helper function to add spacing
-          const addSpacing = (space = 5) => {
-            yPosition += space;
-          };
+              // Draw checkmark
+              doc.setLineWidth(2);
+              doc.setDrawColor(255, 255, 255);
+              doc.line(
+                centerX - radius * 0.3,
+                centerY,
+                centerX - radius * 0.1,
+                centerY + radius * 0.3,
+              );
+              doc.line(
+                centerX - radius * 0.1,
+                centerY + radius * 0.3,
+                centerX + radius * 0.4,
+                centerY - radius * 0.3,
+              );
+            };
 
-          // Helper function to draw a colored box background
-          const drawBox = (height, color, opacity = 0.1) => {
-            if (yPosition + height > pageHeight - margin) {
-              doc.addPage();
-              yPosition = margin;
-            }
-            doc.setFillColor(...color);
-            doc.setGState(new doc.GState({ opacity: opacity }));
-            doc.roundedRect(margin, yPosition, contentWidth, height, 3, 3, 'F');
-            doc.setGState(new doc.GState({ opacity: 1 }));
-          };
+            // Helper function to add text with word wrapping
+            const addText = (
+              text,
+              fontSize,
+              isBold = false,
+              color = colors.darkGray,
+              align = "left",
+            ) => {
+              doc.setFontSize(fontSize);
+              doc.setFont("helvetica", isBold ? "bold" : "normal");
+              doc.setTextColor(...color);
 
-          // ===== COVER PAGE =====
-          
-          // Draw trophy badge at top center
-          const badgeSize = 20;
-          drawTrophyBadge((pageWidth - badgeSize) / 2, yPosition, badgeSize);
-          yPosition += badgeSize + 8;
+              const lines = doc.splitTextToSize(text, contentWidth);
 
-          // Title
-          addText('Design Sprint Complete!', 18, true, colors.darkGray, 'center');
-          addSpacing(5);
-
-          // Score - large and centered
-          addText(`${score} points`, 32, true, colors.purple, 'center');
-          addSpacing(10);
-
-          // "Your Design Journey" section header
-          addText('Your Design Journey', 14, true, colors.darkGray);
-          addSpacing(5);
-
-          // Challenge box
-          const challengeBoxHeight = 25;
-          drawBox(challengeBoxHeight, colors.lightGray, 0.5);
-          yPosition += 7;
-          addText(`Challenge: ${challenge.title}`, 12, true, colors.darkGray);
-          addText(`Topic: ${challenge.topic}`, 10, false, colors.mediumGray);
-          yPosition += challengeBoxHeight - 12;
-          addSpacing(8);
-
-          // Team info (if applicable)
-          if (gameMode === 'team') {
-            const teamBoxHeight = teamMembers.length > 0 ? 25 : 15;
-            drawBox(teamBoxHeight, colors.purple, 0.1);
-            yPosition += 5;
-            addText(`Team: ${teamName}`, 11, true, colors.purple);
-            if (teamMembers.length > 0) {
-              addText(`Members: ${teamMembers.join(', ')}`, 10, false, colors.mediumGray);
-            }
-            yPosition += teamBoxHeight - (teamMembers.length > 0 ? 15 : 10);
-            addSpacing(8);
-          }
-
-          // Date
-          const currentDate = new Date().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          });
-          addText(currentDate, 10, false, colors.mediumGray);
-          addSpacing(15);
-
-          // ===== HMW STATEMENT =====
-          addText('How Might We:', 14, true, colors.blue);
-          addSpacing(3);
-          
-          const hmwLines = doc.splitTextToSize(hmwStatement, contentWidth - 10);
-          const hmwBoxHeight = Math.max(20, hmwLines.length * 4 + 10);
-          drawBox(hmwBoxHeight, colors.blue, 0.1);
-          yPosition += 6;
-          addText(hmwStatement, 11, false, colors.darkGray);
-          yPosition += hmwBoxHeight - (hmwLines.length * 4 + 6);
-          addSpacing(10);
-
-          // ===== IDEAS GENERATED =====
-          addText(`Ideas Generated: ${ideas.length}`, 14, true, colors.gold);
-          addSpacing(5);
-          
-          ideas.forEach((idea, index) => {
-            const ideaText = `${index + 1}. ${idea}`;
-            const ideaLines = doc.splitTextToSize(ideaText, contentWidth - 5);
-            const ideaBoxHeight = ideaLines.length * 4 + 6;
-            
-            if (yPosition + ideaBoxHeight > pageHeight - margin) {
-              doc.addPage();
-              yPosition = margin;
-            }
-            
-            drawBox(ideaBoxHeight, colors.gold, 0.05);
-            yPosition += 4;
-            addText(ideaText, 9, false, colors.darkGray);
-            yPosition += ideaBoxHeight - 4;
-            addSpacing(2);
-          });
-          addSpacing(8);
-
-          // ===== TOP 3 SELECTED IDEAS =====
-          addText('Top 3 Selected Ideas', 14, true, colors.green);
-          addSpacing(5);
-          
-          selectedIdeas.forEach((idea, index) => {
-            const selectedText = `${index + 1}. ${idea}`;
-            const selectedLines = doc.splitTextToSize(selectedText, contentWidth - 5);
-            const selectedBoxHeight = selectedLines.length * 4 + 8;
-            
-            if (yPosition + selectedBoxHeight > pageHeight - margin) {
-              doc.addPage();
-              yPosition = margin;
-            }
-            
-            drawBox(selectedBoxHeight, colors.green, 0.1);
-            yPosition += 5;
-            addText(selectedText, 10, true, colors.darkGray);
-            yPosition += selectedBoxHeight - 5;
-            addSpacing(3);
-          });
-          addSpacing(10);
-
-          // ===== PROTOTYPE =====
-          addText('Your Prototype', 14, true, colors.purple);
-          addSpacing(5);
-          
-          const prototypeLines = doc.splitTextToSize(prototype, contentWidth - 10);
-          const prototypeBoxHeight = prototypeLines.length * 4 + 10;
-          drawBox(prototypeBoxHeight, colors.purple, 0.1);
-          yPosition += 6;
-          addText(prototype, 10, false, colors.darkGray);
-          yPosition += prototypeBoxHeight - (prototypeLines.length * 4 + 6);
-          addSpacing(10);
-
-          // ===== PROTOTYPE IMAGES =====
-          if (prototypeImages.length > 0) {
-            addText('Prototype Images', 14, true, colors.purple);
-            addSpacing(5);
-
-            prototypeImages.forEach((imgData, index) => {
-              const imgHeight = 80;
-              if (yPosition + imgHeight > pageHeight - margin) {
+              // Check if we need a new page
+              if (
+                yPosition + lines.length * fontSize * 0.35 >
+                pageHeight - margin
+              ) {
                 doc.addPage();
                 yPosition = margin;
               }
 
-              try {
-                let format = 'JPEG';
-                if (imgData.includes('image/png')) {
-                  format = 'PNG';
-                } else if (imgData.includes('image/jpeg') || imgData.includes('image/jpg')) {
-                  format = 'JPEG';
-                } else if (imgData.includes('image/gif')) {
-                  format = 'GIF';
+              if (align === "center") {
+                lines.forEach((line) => {
+                  const textWidth = doc.getTextWidth(line);
+                  doc.text(line, (pageWidth - textWidth) / 2, yPosition);
+                  yPosition += fontSize * 0.35;
+                });
+              } else {
+                doc.text(lines, margin, yPosition);
+                yPosition += lines.length * fontSize * 0.35;
+              }
+            };
+
+            // Helper function to add spacing
+            const addSpacing = (space = 5) => {
+              yPosition += space;
+            };
+
+            // Helper function to draw a colored box background
+            const drawBox = (height, color, opacity = 0.1) => {
+              if (yPosition + height > pageHeight - margin) {
+                doc.addPage();
+                yPosition = margin;
+              }
+              doc.setFillColor(...color);
+              doc.setGState(new doc.GState({ opacity: opacity }));
+              doc.roundedRect(
+                margin,
+                yPosition,
+                contentWidth,
+                height,
+                3,
+                3,
+                "F",
+              );
+              doc.setGState(new doc.GState({ opacity: 1 }));
+            };
+
+            // ===== COVER PAGE =====
+
+            // Draw trophy badge at top center
+            const badgeSize = 20;
+            drawTrophyBadge((pageWidth - badgeSize) / 2, yPosition, badgeSize);
+            yPosition += badgeSize + 8;
+
+            // Title
+            addText(
+              "Design Sprint Complete!",
+              18,
+              true,
+              colors.darkGray,
+              "center",
+            );
+            addSpacing(5);
+
+            // Score - large and centered
+            addText(`${score} points`, 32, true, colors.purple, "center");
+            addSpacing(10);
+
+            // "Your Design Journey" section header
+            addText("Your Design Journey", 14, true, colors.darkGray);
+            addSpacing(5);
+
+            // Challenge box
+            const challengeBoxHeight = 25;
+            drawBox(challengeBoxHeight, colors.lightGray, 0.5);
+            yPosition += 7;
+            addText(`Challenge: ${challenge.title}`, 12, true, colors.darkGray);
+            addText(`Topic: ${challenge.topic}`, 10, false, colors.mediumGray);
+            yPosition += challengeBoxHeight - 12;
+            addSpacing(8);
+
+            // Team info (if applicable)
+            if (gameMode === "team") {
+              const teamBoxHeight = teamMembers.length > 0 ? 25 : 15;
+              drawBox(teamBoxHeight, colors.purple, 0.1);
+              yPosition += 5;
+              addText(`Team: ${teamName}`, 11, true, colors.purple);
+              if (teamMembers.length > 0) {
+                addText(
+                  `Members: ${teamMembers.join(", ")}`,
+                  10,
+                  false,
+                  colors.mediumGray,
+                );
+              }
+              yPosition += teamBoxHeight - (teamMembers.length > 0 ? 15 : 10);
+              addSpacing(8);
+            }
+
+            // Date
+            const currentDate = new Date().toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            });
+            addText(currentDate, 10, false, colors.mediumGray);
+            addSpacing(15);
+
+            // ===== HMW STATEMENT =====
+            addText("How Might We:", 14, true, colors.blue);
+            addSpacing(3);
+
+            const hmwLines = doc.splitTextToSize(
+              hmwStatement,
+              contentWidth - 10,
+            );
+            const hmwBoxHeight = Math.max(20, hmwLines.length * 4 + 10);
+            drawBox(hmwBoxHeight, colors.blue, 0.1);
+            yPosition += 6;
+            addText(hmwStatement, 11, false, colors.darkGray);
+            yPosition += hmwBoxHeight - (hmwLines.length * 4 + 6);
+            addSpacing(10);
+
+            // ===== IDEAS GENERATED =====
+            addText(`Ideas Generated: ${ideas.length}`, 14, true, colors.gold);
+            addSpacing(5);
+
+            ideas.forEach((idea, index) => {
+              const ideaText = `${index + 1}. ${idea}`;
+              const ideaLines = doc.splitTextToSize(ideaText, contentWidth - 5);
+              const ideaBoxHeight = ideaLines.length * 4 + 6;
+
+              if (yPosition + ideaBoxHeight > pageHeight - margin) {
+                doc.addPage();
+                yPosition = margin;
+              }
+
+              drawBox(ideaBoxHeight, colors.gold, 0.05);
+              yPosition += 4;
+              addText(ideaText, 9, false, colors.darkGray);
+              yPosition += ideaBoxHeight - 4;
+              addSpacing(2);
+            });
+            addSpacing(8);
+
+            // ===== TOP 3 SELECTED IDEAS =====
+            addText("Top 3 Selected Ideas", 14, true, colors.green);
+            addSpacing(5);
+
+            selectedIdeas.forEach((idea, index) => {
+              const selectedText = `${index + 1}. ${idea}`;
+              const selectedLines = doc.splitTextToSize(
+                selectedText,
+                contentWidth - 5,
+              );
+              const selectedBoxHeight = selectedLines.length * 4 + 8;
+
+              if (yPosition + selectedBoxHeight > pageHeight - margin) {
+                doc.addPage();
+                yPosition = margin;
+              }
+
+              drawBox(selectedBoxHeight, colors.green, 0.1);
+              yPosition += 5;
+              addText(selectedText, 10, true, colors.darkGray);
+              yPosition += selectedBoxHeight - 5;
+              addSpacing(3);
+            });
+            addSpacing(10);
+
+            // ===== PROTOTYPE =====
+            addText("Your Prototype", 14, true, colors.purple);
+            addSpacing(5);
+
+            const prototypeLines = doc.splitTextToSize(
+              prototype,
+              contentWidth - 10,
+            );
+            const prototypeBoxHeight = prototypeLines.length * 4 + 10;
+            drawBox(prototypeBoxHeight, colors.purple, 0.1);
+            yPosition += 6;
+            addText(prototype, 10, false, colors.darkGray);
+            yPosition += prototypeBoxHeight - (prototypeLines.length * 4 + 6);
+            addSpacing(10);
+
+            // ===== PROTOTYPE IMAGES =====
+            if (prototypeImages.length > 0) {
+              addText("Prototype Images", 14, true, colors.purple);
+              addSpacing(5);
+
+              prototypeImages.forEach((imgData, index) => {
+                const imgHeight = 80;
+                if (yPosition + imgHeight > pageHeight - margin) {
+                  doc.addPage();
+                  yPosition = margin;
                 }
 
-                const maxImgWidth = contentWidth - 10;
-                doc.addImage(imgData, format, margin + 5, yPosition, maxImgWidth, 0);
-                yPosition += 70;
-                addSpacing(5);
-              } catch (error) {
-                console.error('Error adding image to PDF:', error);
-                addText(`[Image ${index + 1} could not be embedded]`, 10, false, colors.mediumGray);
-              }
-            });
+                try {
+                  let format = "JPEG";
+                  if (imgData.includes("image/png")) {
+                    format = "PNG";
+                  } else if (
+                    imgData.includes("image/jpeg") ||
+                    imgData.includes("image/jpg")
+                  ) {
+                    format = "JPEG";
+                  } else if (imgData.includes("image/gif")) {
+                    format = "GIF";
+                  }
+
+                  const maxImgWidth = contentWidth - 10;
+                  doc.addImage(
+                    imgData,
+                    format,
+                    margin + 5,
+                    yPosition,
+                    maxImgWidth,
+                    0,
+                  );
+                  yPosition += 70;
+                  addSpacing(5);
+                } catch (error) {
+                  console.error("Error adding image to PDF:", error);
+                  addText(
+                    `[Image ${index + 1} could not be embedded]`,
+                    10,
+                    false,
+                    colors.mediumGray,
+                  );
+                }
+              });
+              addSpacing(5);
+            }
+
+            // ===== ITERATION & REFLECTION =====
+            addText("Iteration & Reflection", 14, true, colors.pink);
             addSpacing(5);
-          }
 
-          // ===== ITERATION & REFLECTION =====
-          addText('Iteration & Reflection', 14, true, colors.pink);
-          addSpacing(5);
-          
-          const iterationLines = doc.splitTextToSize(iterationNotes, contentWidth - 10);
-          const iterationBoxHeight = iterationLines.length * 4 + 10;
-          
-          if (yPosition + iterationBoxHeight > pageHeight - margin) {
-            doc.addPage();
-            yPosition = margin;
-          }
-          
-          drawBox(iterationBoxHeight, colors.pink, 0.1);
-          yPosition += 6;
-          addText(iterationNotes, 10, false, colors.darkGray);
-          yPosition += iterationBoxHeight - (iterationLines.length * 4 + 6);
+            const iterationLines = doc.splitTextToSize(
+              iterationNotes,
+              contentWidth - 10,
+            );
+            const iterationBoxHeight = iterationLines.length * 4 + 10;
 
-          // ===== FOOTER =====
-          // Move to bottom of page
-          yPosition = pageHeight - margin - 10;
-          
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(...colors.mediumGray);
-          doc.text('Generated by IDEO Design Sprint Game', pageWidth / 2, yPosition, { align: 'center' });
+            if (yPosition + iterationBoxHeight > pageHeight - margin) {
+              doc.addPage();
+              yPosition = margin;
+            }
 
-          // Download the PDF
-          try {
-            const sanitizedTeamName = (teamName || 'solo').replace(/[^a-z0-9]/gi, '-');
-            const filename = `design-sprint-${sanitizedTeamName}-${Date.now()}.pdf`;
-            doc.save(filename);
-          } catch (saveError) {
-            console.error('Error saving PDF:', saveError);
-            alert('Failed to save PDF file. Please check your browser settings and try again.');
+            drawBox(iterationBoxHeight, colors.pink, 0.1);
+            yPosition += 6;
+            addText(iterationNotes, 10, false, colors.darkGray);
+            yPosition += iterationBoxHeight - (iterationLines.length * 4 + 6);
+
+            // ===== FOOTER =====
+            // Move to bottom of page
+            yPosition = pageHeight - margin - 10;
+
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(...colors.mediumGray);
+            doc.text(
+              "Generated by IDEO Design Sprint Game",
+              pageWidth / 2,
+              yPosition,
+              { align: "center" },
+            );
+
+            // Download the PDF
+            try {
+              const sanitizedTeamName = (teamName || "solo").replace(
+                /[^a-z0-9]/gi,
+                "-",
+              );
+              const filename = `design-sprint-${sanitizedTeamName}-${Date.now()}.pdf`;
+              doc.save(filename);
+            } catch (saveError) {
+              console.error("Error saving PDF:", saveError);
+              alert(
+                "Failed to save PDF file. Please check your browser settings and try again.",
+              );
+            }
+          } catch (error) {
+            console.error("Error generating PDF:", error);
+            alert(
+              "Failed to generate PDF. Please try downloading as text file instead.",
+            );
           }
-        } catch (error) {
-          console.error('Error generating PDF:', error);
-          alert('Failed to generate PDF. Please try downloading as text file instead.');
-        }
-      };
+        };
 
         const generateShareableResults = () => {
           return {
-            teamName: gameMode === 'team' ? teamName : 'Solo Sprint',
-            teamMembers: gameMode === 'team' ? teamMembers : [],
+            teamName: gameMode === "team" ? teamName : "Solo Sprint",
+            teamMembers: gameMode === "team" ? teamMembers : [],
             challenge: challenge.title,
             topic: challenge.topic,
             date: new Date().toLocaleDateString(),
@@ -1228,7 +1714,7 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
             topIdeas: selectedIdeas,
             prototype: prototype,
             prototypeImagesCount: prototypeImages.length,
-            iterationNotes: iterationNotes
+            iterationNotes: iterationNotes,
           };
         };
 
@@ -1237,42 +1723,42 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
           setEmailForm({
             recipients: "",
             subject: `Design Sprint Results - ${challenge.title}`,
-            message: ""
+            message: "",
           });
           setShowEmailModal(true);
         };
 
         const formatEmailBody = () => {
           const results = generateShareableResults();
-          
+
           let body = `Hi,\n\n`;
           body += `Here are the results from our IDEO Design Sprint:\n\n`;
           body += `Challenge: ${results.challenge} (${results.topic})\n`;
-          body += `${gameMode === 'team' ? `Team: ${results.teamName}` : 'Solo Sprint'}\n`;
-          if (gameMode === 'team' && results.teamMembers.length > 0) {
-            body += `Members: ${results.teamMembers.join(', ')}\n`;
+          body += `${gameMode === "team" ? `Team: ${results.teamName}` : "Solo Sprint"}\n`;
+          if (gameMode === "team" && results.teamMembers.length > 0) {
+            body += `Members: ${results.teamMembers.join(", ")}\n`;
           }
           body += `Date: ${results.date}\n`;
           body += `Score: ${results.score} points\n\n`;
-          
+
           body += `HOW MIGHT WE:\n${results.hmwStatement}\n\n`;
-          
+
           body += `TOP 3 IDEAS:\n`;
           results.topIdeas.forEach((idea, idx) => {
             body += `${idx + 1}. ${idea}\n`;
           });
           body += `\n`;
-          
+
           body += `PROTOTYPE:\n${results.prototype}\n\n`;
-          
+
           if (results.prototypeImagesCount > 0) {
             body += `[Note: ${results.prototypeImagesCount} image(s) attached separately]\n\n`;
           }
-          
+
           body += `NEXT STEPS:\n${results.iterationNotes}\n\n`;
-          
+
           body += `---\nGenerated by IDEO Design Sprint Game`;
-          
+
           return body;
         };
 
@@ -1280,35 +1766,44 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
           try {
             // Validate challenge data exists
             if (!challenge) {
-              alert('No results to email. Please complete a design sprint first.');
+              alert(
+                "No results to email. Please complete a design sprint first.",
+              );
               return;
             }
 
             // Validate email form inputs
             if (!emailForm.recipients || !emailForm.recipients.trim()) {
-              alert('Please enter at least one recipient email address');
+              alert("Please enter at least one recipient email address");
               return;
             }
 
             // Basic email validation
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            const recipients = emailForm.recipients.split(',').map(e => e.trim()).filter(e => e);
-            
+            const recipients = emailForm.recipients
+              .split(",")
+              .map((e) => e.trim())
+              .filter((e) => e);
+
             if (recipients.length === 0) {
-              alert('Please enter at least one valid recipient email address');
+              alert("Please enter at least one valid recipient email address");
               return;
             }
 
-            const invalidEmails = recipients.filter(email => !emailRegex.test(email));
-            
+            const invalidEmails = recipients.filter(
+              (email) => !emailRegex.test(email),
+            );
+
             if (invalidEmails.length > 0) {
-              alert(`Invalid email address(es): ${invalidEmails.join(', ')}\n\nPlease use format: email@example.com`);
+              alert(
+                `Invalid email address(es): ${invalidEmails.join(", ")}\n\nPlease use format: email@example.com`,
+              );
               return;
             }
 
             // Validate subject
             if (!emailForm.subject || !emailForm.subject.trim()) {
-              alert('Please enter an email subject');
+              alert("Please enter an email subject");
               return;
             }
 
@@ -1317,11 +1812,13 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
             try {
               emailBody = formatEmailBody();
             } catch (error) {
-              console.error('Error formatting email body:', error);
-              alert('Failed to format email content. Please try downloading results instead.');
+              console.error("Error formatting email body:", error);
+              alert(
+                "Failed to format email content. Please try downloading results instead.",
+              );
               return;
             }
-            
+
             // Add optional message if provided
             if (emailForm.message && emailForm.message.trim()) {
               emailBody = `${emailForm.message.trim()}\n\n${emailBody}`;
@@ -1332,28 +1829,36 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
               const subject = encodeURIComponent(emailForm.subject.trim());
               const body = encodeURIComponent(emailBody);
               const to = encodeURIComponent(emailForm.recipients.trim());
-              
+
               // Check if mailto URL is too long (some email clients have limits)
               const mailtoUrl = `mailto:${to}?subject=${subject}&body=${body}`;
-              
+
               if (mailtoUrl.length > 2000) {
-                alert('Email content is too long for some email clients. Please try downloading results as a file instead.');
+                alert(
+                  "Email content is too long for some email clients. Please try downloading results as a file instead.",
+                );
                 return;
               }
-              
+
               // Open mailto URL in new window
-              window.open(mailtoUrl, '_blank');
-              
+              window.open(mailtoUrl, "_blank");
+
               // Close email modal and show confirmation
               setShowEmailModal(false);
-              alert('Email client opened! Please manually attach any prototype images if needed.');
+              alert(
+                "Email client opened! Please manually attach any prototype images if needed.",
+              );
             } catch (error) {
-              console.error('Error creating mailto URL:', error);
-              alert('Failed to open email client. Please try copying results to clipboard instead.');
+              console.error("Error creating mailto URL:", error);
+              alert(
+                "Failed to open email client. Please try copying results to clipboard instead.",
+              );
             }
           } catch (error) {
-            console.error('Error in openEmailClient:', error);
-            alert('An unexpected error occurred. Please try downloading results instead.');
+            console.error("Error in openEmailClient:", error);
+            alert(
+              "An unexpected error occurred. Please try downloading results instead.",
+            );
           }
         };
 
@@ -1381,8 +1886,8 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                     </button>
                   </div>
 
-                  {!gameMode ? (
-                    <div className="grid md:grid-cols-2 gap-6 mb-8">
+                  {!gameMode && !isCollaborative ? (
+                    <div className="grid md:grid-cols-3 gap-6 mb-8">
                       <div
                         onClick={() => setGameMode("solo")}
                         className="bg-gradient-to-br from-blue-50 to-blue-100 p-8 rounded-xl cursor-pointer hover:shadow-lg transition-all border-2 border-blue-200 hover:border-blue-400"
@@ -1409,6 +1914,21 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           </h3>
                           <p className="text-gray-700">
                             Collaborate with your team in real-time
+                          </p>
+                        </div>
+                      </div>
+
+                      <div
+                        onClick={() => setGameMode("collaborative")}
+                        className="bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-xl cursor-pointer hover:shadow-lg transition-all border-2 border-green-200 hover:border-green-400"
+                      >
+                        <div className="text-center">
+                          <Icons.Users className="w-16 h-16 mx-auto mb-4 text-green-600" />
+                          <h3 className="font-bold text-2xl mb-3 text-green-800">
+                            Collaborative
+                          </h3>
+                          <p className="text-gray-700">
+                            Real-time collaboration with remote participants
                           </p>
                         </div>
                       </div>
@@ -1479,6 +1999,90 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                     </div>
                   )}
 
+                  {gameMode === "collaborative" && !isCollaborative && (
+                    <div className="bg-green-50 rounded-xl p-6 mb-8">
+                      <h3 className="font-bold text-xl mb-4 text-green-800">
+                        Collaborative Session Setup
+                      </h3>
+
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Your Name
+                        </label>
+                        <input
+                          type="text"
+                          value={userName}
+                          onChange={(e) => setUserName(e.target.value)}
+                          placeholder="Enter your name"
+                          className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <button
+                          onClick={createSession}
+                          disabled={!userName.trim()}
+                          className="bg-green-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Create Session
+                        </button>
+
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={joinCode}
+                            onChange={(e) => setJoinCode(e.target.value)}
+                            placeholder="Session code"
+                            className="flex-1 p-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
+                          />
+                          <button
+                            onClick={() => joinSession(joinCode)}
+                            disabled={!userName.trim() || !joinCode.trim()}
+                            className="bg-blue-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Join
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {isCollaborative && (
+                    <div className="bg-green-50 rounded-xl p-6 mb-8">
+                      <h3 className="font-bold text-xl mb-4 text-green-800">
+                        Session: {sessionId}
+                      </h3>
+
+                      <div className="mb-4">
+                        <h4 className="font-semibold text-gray-700 mb-2">
+                          Participants ({participants.length})
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {participants.map((participant) => (
+                            <div
+                              key={participant.id}
+                              className={`px-3 py-1 rounded-full text-sm ${
+                                participant.isHost
+                                  ? "bg-green-200 text-green-800"
+                                  : "bg-gray-200 text-gray-700"
+                              }`}
+                            >
+                              {participant.name}{" "}
+                              {participant.isHost && "(Host)"}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {isHost && (
+                        <p className="text-sm text-green-700">
+                          Share this session code with participants:{" "}
+                          <strong>{sessionId}</strong>
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex gap-4 justify-center mb-6">
                     <div className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
                       <Icons.Clock className="w-5 h-5 text-gray-600" />
@@ -1513,10 +2117,17 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                     )}
                     <button
                       onClick={() => startGame(gameMode)}
-                      disabled={!gameMode || enabledChallenges.size === 0}
+                      disabled={
+                        !gameMode ||
+                        enabledChallenges.size === 0 ||
+                        (gameMode === "collaborative" &&
+                          (!isCollaborative || !isHost))
+                      }
                       className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white py-4 rounded-xl text-xl font-bold hover:from-blue-600 hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Start Design Sprint →
+                      {gameMode === "collaborative" && !isHost
+                        ? "Waiting for host to start..."
+                        : "Start Design Sprint →"}
                     </button>
                   </div>
                 </div>
@@ -1550,12 +2161,16 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                             aria-label="Add new challenge"
                           >
                             <Icons.Plus className="w-4 h-4" />
-                            <span className="hidden sm:inline">Add Challenge</span>
+                            <span className="hidden sm:inline">
+                              Add Challenge
+                            </span>
                             <span className="sm:hidden">Add</span>
                           </button>
                           <label className="bg-purple-500 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-bold hover:bg-purple-600 active:bg-purple-700 transition-all flex items-center gap-2 cursor-pointer">
                             <Icons.Download className="w-4 h-4" />
-                            <span className="hidden sm:inline">Import Challenges</span>
+                            <span className="hidden sm:inline">
+                              Import Challenges
+                            </span>
                             <span className="sm:hidden">Import</span>
                             <input
                               type="file"
@@ -1572,7 +2187,9 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                               aria-label="Export challenges to JSON file"
                             >
                               <Icons.Download className="w-4 h-4" />
-                              <span className="hidden sm:inline">Export Challenges</span>
+                              <span className="hidden sm:inline">
+                                Export Challenges
+                              </span>
                               <span className="sm:hidden">Export</span>
                             </button>
                           )}
@@ -1583,7 +2200,8 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                         <div className="bg-blue-50 p-4 rounded-lg mb-4 space-y-3">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Challenge Title <span className="text-red-500">*</span>
+                              Challenge Title{" "}
+                              <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
@@ -1601,7 +2219,8 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Challenge Description <span className="text-red-500">*</span>
+                              Challenge Description{" "}
+                              <span className="text-red-500">*</span>
                             </label>
                             <textarea
                               placeholder="Describe the problem or situation..."
@@ -1619,7 +2238,8 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              User Persona <span className="text-red-500">*</span>
+                              User Persona{" "}
+                              <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
@@ -1688,7 +2308,8 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                               ))) && (
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Custom Topic Name <span className="text-red-500">*</span>
+                                Custom Topic Name{" "}
+                                <span className="text-red-500">*</span>
                               </label>
                               <input
                                 type="text"
@@ -1755,7 +2376,8 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           ))
                         ) : (
                           <p className="text-sm text-gray-500 italic text-center py-4">
-                            No custom challenges yet. Click "Add Challenge" to create one.
+                            No custom challenges yet. Click "Add Challenge" to
+                            create one.
                           </p>
                         )}
                       </div>
@@ -1841,7 +2463,9 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                               ? "bg-blue-500 text-white shadow-md"
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300"
                           }`}
-                          aria-pressed={timerDuration === 60 && customTimerInput === ""}
+                          aria-pressed={
+                            timerDuration === 60 && customTimerInput === ""
+                          }
                         >
                           1 min
                         </button>
@@ -1856,7 +2480,9 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                               ? "bg-blue-500 text-white shadow-md"
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300"
                           }`}
-                          aria-pressed={timerDuration === 180 && customTimerInput === ""}
+                          aria-pressed={
+                            timerDuration === 180 && customTimerInput === ""
+                          }
                         >
                           3 min
                         </button>
@@ -1871,7 +2497,9 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                               ? "bg-blue-500 text-white shadow-md"
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300"
                           }`}
-                          aria-pressed={timerDuration === 300 && customTimerInput === ""}
+                          aria-pressed={
+                            timerDuration === 300 && customTimerInput === ""
+                          }
                         >
                           5 min
                         </button>
@@ -1886,7 +2514,9 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                               ? "bg-blue-500 text-white shadow-md"
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300"
                           }`}
-                          aria-pressed={timerDuration === 600 && customTimerInput === ""}
+                          aria-pressed={
+                            timerDuration === 600 && customTimerInput === ""
+                          }
                         >
                           10 min
                         </button>
@@ -1911,10 +2541,16 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                               : "border-gray-300 focus:border-blue-500"
                           }`}
                           aria-invalid={!!timerError}
-                          aria-describedby={timerError ? "timer-error" : undefined}
+                          aria-describedby={
+                            timerError ? "timer-error" : undefined
+                          }
                         />
                         {timerError && (
-                          <p id="timer-error" className="text-sm text-red-600 mt-2 flex items-center gap-1" role="alert">
+                          <p
+                            id="timer-error"
+                            className="text-sm text-red-600 mt-2 flex items-center gap-1"
+                            role="alert"
+                          >
                             <span>⚠️</span>
                             {timerError}
                           </p>
@@ -1924,7 +2560,10 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                         <p className="text-xs text-gray-600 flex items-start gap-2">
                           <span className="text-base">ℹ️</span>
-                          <span>Timer settings apply to the current session only and reset when the browser is closed.</span>
+                          <span>
+                            Timer settings apply to the current session only and
+                            reset when the browser is closed.
+                          </span>
                         </p>
                       </div>
                     </div>
@@ -1937,9 +2576,11 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
                   <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto modal-content my-4">
                     <div className="flex justify-between items-center mb-4 sm:mb-6">
-                      <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Import Challenges Preview</h2>
-                      <button 
-                        onClick={() => setShowImportPreview(false)} 
+                      <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+                        Import Challenges Preview
+                      </h2>
+                      <button
+                        onClick={() => setShowImportPreview(false)}
                         className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-lg transition-all"
                         aria-label="Close import preview"
                       >
@@ -1950,29 +2591,36 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                     <div className="mb-6">
                       <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3 sm:p-4 mb-4">
                         <p className="text-blue-800 font-semibold text-sm sm:text-base">
-                          📦 {importPreviewData.length} challenge{importPreviewData.length !== 1 ? 's' : ''} found
+                          📦 {importPreviewData.length} challenge
+                          {importPreviewData.length !== 1 ? "s" : ""} found
                         </p>
                       </div>
 
-                      <h3 className="font-bold text-base sm:text-lg text-gray-800 mb-3">Challenges to Import:</h3>
+                      <h3 className="font-bold text-base sm:text-lg text-gray-800 mb-3">
+                        Challenges to Import:
+                      </h3>
                       <div className="space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-2">
                         {importPreviewData.map((challenge, idx) => {
-                          const isDuplicate = customChallenges.some(c => 
-                            c.title.toLowerCase() === challenge.title.toLowerCase()
+                          const isDuplicate = customChallenges.some(
+                            (c) =>
+                              c.title.toLowerCase() ===
+                              challenge.title.toLowerCase(),
                           );
-                          
+
                           return (
-                            <div 
-                              key={idx} 
+                            <div
+                              key={idx}
                               className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
-                                isDuplicate 
-                                  ? 'bg-yellow-50 border-yellow-300' 
-                                  : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                                isDuplicate
+                                  ? "bg-yellow-50 border-yellow-300"
+                                  : "bg-gray-50 border-gray-200 hover:border-gray-300"
                               }`}
                             >
                               <div className="flex flex-wrap items-center gap-2 mb-2">
-                                <div className="font-semibold text-gray-800 text-sm sm:text-base">{challenge.title}</div>
-                                <span 
+                                <div className="font-semibold text-gray-800 text-sm sm:text-base">
+                                  {challenge.title}
+                                </div>
+                                <span
                                   className={`px-2 py-1 rounded-full text-xs font-semibold ${getTopicColor(challenge.topic)}`}
                                   role="status"
                                   aria-label={`Topic: ${challenge.topic}`}
@@ -1980,7 +2628,7 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                                   {challenge.topic}
                                 </span>
                                 {isDuplicate && (
-                                  <span 
+                                  <span
                                     className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-200 text-yellow-900 border border-yellow-400"
                                     role="status"
                                   >
@@ -1988,7 +2636,9 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                                   </span>
                                 )}
                               </div>
-                              <div className="text-xs sm:text-sm text-gray-600">{challenge.description}</div>
+                              <div className="text-xs sm:text-sm text-gray-600">
+                                {challenge.description}
+                              </div>
                             </div>
                           );
                         })}
@@ -2021,9 +2671,11 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
                   <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto modal-content my-4">
                     <div className="flex justify-between items-center mb-4 sm:mb-6">
-                      <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Email Results</h2>
-                      <button 
-                        onClick={() => setShowEmailModal(false)} 
+                      <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+                        Email Results
+                      </h2>
+                      <button
+                        onClick={() => setShowEmailModal(false)}
                         className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-lg transition-all"
                         aria-label="Close email modal"
                       >
@@ -2034,30 +2686,49 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                     <div className="space-y-4 mb-6">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Recipients <span className="text-red-500" aria-label="required">*</span>
+                          Recipients{" "}
+                          <span className="text-red-500" aria-label="required">
+                            *
+                          </span>
                         </label>
                         <input
                           type="text"
                           value={emailForm.recipients}
-                          onChange={(e) => setEmailForm({...emailForm, recipients: e.target.value})}
+                          onChange={(e) =>
+                            setEmailForm({
+                              ...emailForm,
+                              recipients: e.target.value,
+                            })
+                          }
                           placeholder="email@example.com, another@example.com"
                           className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none transition-all"
                           aria-required="true"
                         />
                         <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
                           <span>ℹ️</span>
-                          <span>Enter one or more email addresses separated by commas</span>
+                          <span>
+                            Enter one or more email addresses separated by
+                            commas
+                          </span>
                         </p>
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Subject <span className="text-red-500" aria-label="required">*</span>
+                          Subject{" "}
+                          <span className="text-red-500" aria-label="required">
+                            *
+                          </span>
                         </label>
                         <input
                           type="text"
                           value={emailForm.subject}
-                          onChange={(e) => setEmailForm({...emailForm, subject: e.target.value})}
+                          onChange={(e) =>
+                            setEmailForm({
+                              ...emailForm,
+                              subject: e.target.value,
+                            })
+                          }
                           placeholder="Design Sprint Results"
                           className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none transition-all"
                           aria-required="true"
@@ -2070,7 +2741,12 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                         </label>
                         <textarea
                           value={emailForm.message}
-                          onChange={(e) => setEmailForm({...emailForm, message: e.target.value})}
+                          onChange={(e) =>
+                            setEmailForm({
+                              ...emailForm,
+                              message: e.target.value,
+                            })
+                          }
                           placeholder="Add a personal message (optional)"
                           rows="4"
                           className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none transition-all"
@@ -2078,12 +2754,14 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                       </div>
 
                       <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-3 sm:p-4">
-                        <h3 className="font-bold text-gray-800 mb-2 text-sm sm:text-base">Email Preview</h3>
+                        <h3 className="font-bold text-gray-800 mb-2 text-sm sm:text-base">
+                          Email Preview
+                        </h3>
                         <div className="text-xs sm:text-sm text-gray-600 whitespace-pre-wrap max-h-48 sm:max-h-64 overflow-y-auto bg-white p-3 rounded border border-gray-200">
                           {emailForm.message && (
                             <>
                               {emailForm.message}
-                              {'\n\n'}
+                              {"\n\n"}
                             </>
                           )}
                           {formatEmailBody()}
@@ -2099,7 +2777,10 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                                 📎 Note about images
                               </p>
                               <p className="text-xs sm:text-sm text-yellow-700 mt-1">
-                                You have {prototypeImages.length} prototype image{prototypeImages.length !== 1 ? 's' : ''}. Please manually attach them to your email after it opens in your email client.
+                                You have {prototypeImages.length} prototype
+                                image{prototypeImages.length !== 1 ? "s" : ""}.
+                                Please manually attach them to your email after
+                                it opens in your email client.
                               </p>
                             </div>
                           </div>
@@ -2184,11 +2865,14 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           <strong>Ideas Generated:</strong> {ideas.length}
                         </p>
                         <div className="mt-2 space-y-1">
-                          {ideas.slice(0, 5).map((idea, idx) => (
-                            <p key={idx} className="text-sm text-gray-600">
-                              • {idea}
-                            </p>
-                          ))}
+                          {ideas.slice(0, 5).map((idea, idx) => {
+                            const ideaText = typeof idea === 'object' ? idea.text : idea;
+                            return (
+                              <p key={idx} className="text-sm text-gray-600">
+                                • {ideaText}
+                              </p>
+                            );
+                          })}
                           {ideas.length > 5 && (
                             <p className="text-sm text-gray-500 italic">
                               ...and {ideas.length - 5} more
@@ -2201,11 +2885,14 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           <strong>Top 3 Concepts:</strong>
                         </p>
                         <div className="mt-2 space-y-1">
-                          {selectedIdeas.map((idea, idx) => (
-                            <p key={idx} className="text-sm text-gray-800">
-                              🏆 {idea}
-                            </p>
-                          ))}
+                          {selectedIdeas.map((idea, idx) => {
+                            const ideaText = typeof idea === 'object' ? idea.text : idea;
+                            return (
+                              <p key={idx} className="text-sm text-gray-800">
+                                🏆 {ideaText}
+                              </p>
+                            );
+                          })}
                         </div>
                       </div>
                       {prototype && (
@@ -2229,10 +2916,13 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                                   src={img}
                                   alt={`Prototype sketch ${idx + 1}`}
                                   className="w-full aspect-square object-cover rounded-lg border-2 border-purple-200 image-thumbnail cursor-pointer"
-                                  onClick={() => window.open(img, '_blank')}
+                                  onClick={() => window.open(img, "_blank")}
                                   role="button"
                                   tabIndex={0}
-                                  onKeyPress={(e) => e.key === 'Enter' && window.open(img, '_blank')}
+                                  onKeyPress={(e) =>
+                                    e.key === "Enter" &&
+                                    window.open(img, "_blank")
+                                  }
                                 />
                                 <div className="absolute bottom-2 left-2 bg-purple-600 text-white text-xs px-2 py-1 rounded">
                                   {idx + 1}/{prototypeImages.length}
@@ -2319,8 +3009,13 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-2xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
                       <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-bold text-gray-800">Email Results</h2>
-                        <button onClick={() => setShowEmailModal(false)} className="text-gray-500 hover:text-gray-700">
+                        <h2 className="text-2xl font-bold text-gray-800">
+                          Email Results
+                        </h2>
+                        <button
+                          onClick={() => setShowEmailModal(false)}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
                           <Icons.X className="w-6 h-6" />
                         </button>
                       </div>
@@ -2333,12 +3028,18 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           <input
                             type="text"
                             value={emailForm.recipients}
-                            onChange={(e) => setEmailForm({...emailForm, recipients: e.target.value})}
+                            onChange={(e) =>
+                              setEmailForm({
+                                ...emailForm,
+                                recipients: e.target.value,
+                              })
+                            }
                             placeholder="email@example.com, another@example.com"
                             className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
                           />
                           <p className="text-xs text-gray-500 mt-1">
-                            Enter one or more email addresses separated by commas
+                            Enter one or more email addresses separated by
+                            commas
                           </p>
                         </div>
 
@@ -2349,7 +3050,12 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           <input
                             type="text"
                             value={emailForm.subject}
-                            onChange={(e) => setEmailForm({...emailForm, subject: e.target.value})}
+                            onChange={(e) =>
+                              setEmailForm({
+                                ...emailForm,
+                                subject: e.target.value,
+                              })
+                            }
                             placeholder="Design Sprint Results"
                             className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
                           />
@@ -2361,7 +3067,12 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           </label>
                           <textarea
                             value={emailForm.message}
-                            onChange={(e) => setEmailForm({...emailForm, message: e.target.value})}
+                            onChange={(e) =>
+                              setEmailForm({
+                                ...emailForm,
+                                message: e.target.value,
+                              })
+                            }
                             placeholder="Add a personal message (optional)"
                             rows="4"
                             className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
@@ -2369,12 +3080,14 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                         </div>
 
                         <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4">
-                          <h3 className="font-bold text-gray-800 mb-2">Email Preview</h3>
+                          <h3 className="font-bold text-gray-800 mb-2">
+                            Email Preview
+                          </h3>
                           <div className="text-sm text-gray-600 whitespace-pre-wrap max-h-64 overflow-y-auto">
                             {emailForm.message && (
                               <>
                                 {emailForm.message}
-                                {'\n\n'}
+                                {"\n\n"}
                               </>
                             )}
                             {formatEmailBody()}
@@ -2390,7 +3103,9 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                                   Note about images
                                 </p>
                                 <p className="text-xs text-yellow-700 mt-1">
-                                  You have {prototypeImages.length} prototype image(s). Please manually attach them to your email after it opens in your email client.
+                                  You have {prototypeImages.length} prototype
+                                  image(s). Please manually attach them to your
+                                  email after it opens in your email client.
                                 </p>
                               </div>
                             </div>
@@ -2639,7 +3354,18 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                             <div className="bg-yellow-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
                               {idx + 1}
                             </div>
-                            <div className="text-gray-700 flex-1">{idea}</div>
+                            <div className="text-gray-700 flex-1">
+                              {isCollaborative && typeof idea === "object" ? (
+                                <div>
+                                  <div>{idea.text}</div>
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    by {idea.author}
+                                  </div>
+                                </div>
+                              ) : (
+                                idea
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -2647,9 +3373,13 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                       {ideas.length >= 5 && (
                         <button
                           onClick={nextPhase}
-                          className="w-full bg-green-500 text-white py-3 rounded-lg font-bold hover:bg-green-600 transition-all"
+                          disabled={isCollaborative && !isHost}
+                          className="w-full bg-green-500 text-white py-3 rounded-lg font-bold hover:bg-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Continue to Selection ({ideas.length} ideas) →
+                          {isCollaborative && !isHost
+                            ? `Waiting for host... (${ideas.length} ideas)`
+                            : `Continue to Selection (${ideas.length} ideas) →`
+                          }
                         </button>
                       )}
                     </div>
@@ -2661,30 +3391,44 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                         Click on 3 ideas to select them:
                       </p>
                       <div className="space-y-2 mb-4 max-h-96 overflow-y-auto">
-                        {ideas.map((idea, idx) => (
-                          <div
-                            key={idx}
-                            onClick={() => toggleIdeaSelection(idea)}
-                            className={`p-4 rounded-lg cursor-pointer transition-all ${
-                              selectedIdeas.includes(idea)
-                                ? "bg-green-500 text-white border-2 border-green-600"
-                                : "bg-gray-50 hover:bg-gray-100 border-2 border-gray-200"
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                                  selectedIdeas.includes(idea)
-                                    ? "bg-white text-green-500"
-                                    : "bg-gray-300 text-gray-600"
-                                }`}
-                              >
-                                {selectedIdeas.includes(idea) ? "✓" : idx + 1}
+                        {ideas.map((idea, idx) => {
+                          const ideaId = typeof idea === 'object' ? idea.id : idea;
+                          const ideaText = typeof idea === 'object' ? idea.text : idea;
+                          const ideaAuthor = typeof idea === 'object' ? idea.author : null;
+                          const isSelected = selectedIdeas.some(selected => 
+                            typeof selected === 'object' ? selected.id === ideaId : selected === ideaId
+                          );
+                          
+                          return (
+                            <div
+                              key={idx}
+                              onClick={() => toggleIdeaSelection(idea)}
+                              className={`p-4 rounded-lg cursor-pointer transition-all ${
+                                isSelected
+                                  ? "bg-green-500 text-white border-2 border-green-600"
+                                  : "bg-gray-50 hover:bg-gray-100 border-2 border-gray-200"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                                    isSelected
+                                      ? "bg-white text-green-500"
+                                      : "bg-gray-300 text-gray-600"
+                                  }`}
+                                >
+                                  {isSelected ? "✓" : idx + 1}
+                                </div>
+                                <div className="flex-1">
+                                  {ideaText}
+                                  {ideaAuthor && (
+                                    <div className="text-xs mt-1 opacity-75">by {ideaAuthor}</div>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex-1">{idea}</div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       {selectedIdeas.length === 3 && (
@@ -2704,7 +3448,9 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                         <div className="font-bold text-purple-800 mb-2">
                           Your Top Idea:
                         </div>
-                        <p className="text-gray-700">{selectedIdeas[0]}</p>
+                        <p className="text-gray-700">
+                          {typeof selectedIdeas[0] === 'object' ? selectedIdeas[0].text : selectedIdeas[0]}
+                        </p>
                       </div>
                       <textarea
                         value={userInput}
@@ -2713,7 +3459,7 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                         rows="6"
                         className="w-full p-4 border-2 border-gray-300 rounded-lg mb-4 focus:border-purple-500 focus:outline-none"
                       />
-                      
+
                       <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Add Images or Sketches (Optional)
@@ -2731,7 +3477,10 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                           className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-3 rounded-lg font-semibold hover:bg-purple-200 active:bg-purple-300 transition-all cursor-pointer border-2 border-purple-200 hover:border-purple-300"
                           role="button"
                           tabIndex={0}
-                          onKeyPress={(e) => e.key === 'Enter' && document.getElementById('image-upload').click()}
+                          onKeyPress={(e) =>
+                            e.key === "Enter" &&
+                            document.getElementById("image-upload").click()
+                          }
                         >
                           <Icons.Upload className="w-5 h-5" />
                           <span>Upload Image</span>
@@ -2739,7 +3488,9 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                         <div className="bg-purple-50 border border-purple-200 rounded-lg p-2 mt-2">
                           <p className="text-xs text-purple-800 flex items-center gap-1">
                             <span>ℹ️</span>
-                            <span>PNG, JPG, GIF, or SVG • Max 5MB • Up to 3 images</span>
+                            <span>
+                              PNG, JPG, GIF, or SVG • Max 5MB • Up to 3 images
+                            </span>
                           </p>
                         </div>
                       </div>
@@ -2799,9 +3550,13 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                       />
                       <button
                         onClick={handleSubmit}
-                        className="w-full bg-pink-500 text-white py-3 rounded-lg font-bold hover:bg-pink-600 transition-all"
+                        disabled={isCollaborative && !isHost}
+                        className="w-full bg-pink-500 text-white py-3 rounded-lg font-bold hover:bg-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Complete Design Sprint! 🎉
+                        {isCollaborative && !isHost 
+                          ? "Waiting for host to complete..." 
+                          : "Complete Design Sprint! 🎉"
+                        }
                       </button>
                     </div>
                   )}
@@ -2817,4 +3572,3 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
     </script>
   </body>
 </html>
-

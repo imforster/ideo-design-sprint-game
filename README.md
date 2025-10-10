@@ -61,7 +61,18 @@ Ideal for:
 - Workshop facilitation
 - Collaborative brainstorming
 - Team building activities
-- Remote team sessions
+- In-person team sessions
+
+### Collaborative Mode (NEW!)
+
+Real-time collaboration for:
+
+- Remote team workshops
+- Distributed design sprints
+- Multi-location sessions
+- Asynchronous participation
+
+**Note**: Collaborative mode requires Supabase setup. See `COLLABORATIVE_SETUP.md` for instructions.
 
 ---
 

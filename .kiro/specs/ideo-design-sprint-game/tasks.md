@@ -227,3 +227,99 @@
   - Add JSON schema example to documentation
   - Document timer customization options
   - _Requirements: All requirements_
+
+
+- [x] 11. Implement Supabase configuration in settings
+  - Add state variables for Supabase URL, Anon Key, and configuration status
+  - Create "Collaborative Mode Configuration" section in settings modal
+  - Position section prominently (near top of settings)
+  - _Requirements: 23.1, 23.2, 23.3_
+
+- [x] 11.1 Create configuration UI components
+  - Add Supabase URL input field with URL validation
+  - Add Supabase Anon Key input field (password type)
+  - Add show/hide toggle button for Anon Key field
+  - Display configuration status indicator (localStorage, config.js, or none)
+  - Add link to COLLABORATIVE_SETUP.md documentation
+  - _Requirements: 23.2, 23.3, 23.13, 23.14_
+
+- [x] 11.2 Implement configuration priority system
+  - Create initializeSupabase function with priority order
+  - Check localStorage first for supabaseConfig
+  - Fall back to window.SUPABASE_CONFIG from config.js
+  - Set configSource state based on which source is used
+  - Handle case when no configuration exists
+  - _Requirements: 23.4, 23.7, 23.8_
+
+- [x] 11.3 Implement save configuration functionality
+  - Create saveConfiguration function
+  - Validate Supabase URL format (must be valid URL)
+  - Validate Anon Key format (should start with "eyJ")
+  - Save configuration to localStorage with key "supabaseConfig"
+  - Reinitialize Supabase client after saving
+  - Display success message
+  - _Requirements: 23.5, 23.6, 23.10_
+
+- [x] 11.4 Implement test connection functionality
+  - Create testConnection function
+  - Create temporary Supabase client with entered credentials
+  - Attempt to query sessions table to verify connection
+  - Display loading state during test
+  - Show success or error message with details
+  - Handle network errors gracefully
+  - _Requirements: 23.15_
+
+- [x] 11.5 Implement clear configuration functionality
+  - Create clearConfiguration function
+  - Show confirmation dialog before clearing
+  - Remove supabaseConfig from localStorage
+  - Clear input fields
+  - Reinitialize Supabase client (revert to config.js if available)
+  - Display confirmation message
+  - _Requirements: 23.9_
+
+- [x] 11.6 Update collaborative mode availability
+  - Check if valid Supabase configuration exists before allowing collaborative mode
+  - Disable "Collaborative" mode button if no configuration
+  - Show warning message when collaborative mode is selected without configuration
+  - Display error with instructions when user tries to create/join session without config
+  - Update intro screen to reflect configuration status
+  - _Requirements: 23.11, 23.12_
+
+- [x] 11.7 Load current configuration into form
+  - Create loadCurrentConfiguration function
+  - Load values from localStorage if they exist
+  - Show config.js values as placeholders if no localStorage config
+  - Call on settings modal open
+  - Populate input fields with current values
+  - _Requirements: 23.3, 23.4_
+
+- [x] 11.8 Add error handling and validation
+  - Validate URL format before saving
+  - Validate Anon Key format before saving
+  - Handle localStorage quota exceeded errors
+  - Handle corrupted localStorage data
+  - Display user-friendly error messages
+  - Add try-catch blocks for all localStorage operations
+  - _Requirements: 23.5, 23.6_
+
+- [x] 11.9 Update documentation
+  - Update COLLABORATIVE_SETUP.md to mention settings UI option
+  - Add screenshots or instructions for using settings UI
+  - Update README.md with configuration options
+  - Add troubleshooting section for configuration issues
+  - Document priority order (localStorage > config.js)
+  - _Requirements: 23.13_
+
+- [x] 11.10 Test configuration feature
+  - Test saving configuration to localStorage
+  - Test priority order (localStorage overrides config.js)
+  - Test clearing configuration
+  - Test connection with valid credentials
+  - Test connection with invalid credentials
+  - Test with no configuration
+  - Test with config.js only
+  - Test with localStorage only
+  - Test with both (localStorage should win)
+  - Verify collaborative mode enables/disables correctly
+  - _Requirements: All 23.x requirements_

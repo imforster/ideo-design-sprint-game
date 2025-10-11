@@ -72,7 +72,12 @@ Real-time collaboration for:
 - Multi-location sessions
 - Asynchronous participation
 
-**Note**: Collaborative mode requires Supabase setup. See `COLLABORATIVE_SETUP.md` for instructions.
+**Configuration Options:**
+- **Settings UI** (Recommended): Configure directly in the app via Settings → Collaborative Mode Configuration
+- **config.js File**: Create a config file for persistent configuration
+- **Priority**: Settings UI (localStorage) overrides config.js
+
+**Note**: Collaborative mode requires Supabase setup. See `COLLABORATIVE_SETUP.md` for detailed instructions.
 
 ---
 
@@ -168,6 +173,32 @@ Quick start guide and overview
 ---
 
 ## 🔧 Customization
+
+### Supabase Configuration (Collaborative Mode)
+
+**Option 1: Settings UI (Easiest)**
+1. Click Settings icon (⚙️) on intro screen
+2. Scroll to "Collaborative Mode Configuration"
+3. Enter your Supabase URL and Anon Key
+4. Click "Test Connection" to verify
+5. Click "Save Configuration" to store locally
+
+**Option 2: config.js File**
+1. Create `config.js` in the same folder as `index.html`
+2. Add your Supabase credentials:
+```javascript
+window.SUPABASE_CONFIG = {
+  url: "https://xxxxx.supabase.co",
+  anonKey: "eyJhbGc..."
+};
+```
+3. Save and refresh the page
+
+**Configuration Priority:**
+- localStorage (Settings UI) takes priority over config.js
+- This allows default config in file with individual overrides
+
+**See COLLABORATIVE_SETUP.md for complete setup instructions.**
 
 ### Challenge Management
 
@@ -284,7 +315,20 @@ All styling uses Tailwind CSS classes. Modify class names to change appearance.
 ### Custom Challenges Disappeared
 
 - **Expected**: They reset each session
-- **Solution**: Document challenges in a separate file
+- **Solution**: Export challenges via Settings before closing
+
+### Collaborative Mode Not Available
+
+- **Check**: Settings → Collaborative Mode Configuration
+- **Status**: Look for configuration status indicator
+- **Solution**: Enter Supabase credentials or check config.js
+- **Test**: Use "Test Connection" button to verify credentials
+
+### Configuration Not Saving
+
+- **Check**: Browser localStorage is enabled
+- **Solution**: Not in private/incognito mode
+- **Alternative**: Use config.js file instead
 
 ---
 

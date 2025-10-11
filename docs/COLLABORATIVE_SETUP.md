@@ -37,22 +37,51 @@ This guide will help you set up real-time collaborative features for the IDEO De
 
 ## Step 4: Configure the Game
 
-1. Open `index.html` in a text editor
-2. Find these lines near the top of the script section:
+You have two options to configure Supabase credentials:
+
+### Option A: Using the Settings UI (Recommended)
+
+1. Open `index.html` in your browser
+2. Click the **Settings** (gear icon) button in the top-right corner
+3. Scroll to the **"Collaborative Mode Configuration"** section at the top
+4. Enter your **Supabase URL** (e.g., `https://xxxxx.supabase.co`)
+5. Enter your **Supabase Anon Key** (starts with `eyJ...`)
+6. Click **"Test Connection"** to verify your credentials work
+7. Click **"Save Configuration"** to store them locally
+
+**Benefits:**
+- ✅ No code editing required
+- ✅ Credentials stored in browser localStorage
+- ✅ Easy to update or clear
+- ✅ Test connection before saving
+- ✅ Works immediately without page refresh
+
+### Option B: Using config.js File
+
+1. Create or edit `config.js` in the same directory as `index.html`
+2. Add the following code:
 
 ```javascript
-const SUPABASE_URL = 'https://your-project-ref.supabase.co';
-const SUPABASE_ANON_KEY = 'your-anon-key';
+// Supabase configuration
+window.SUPABASE_CONFIG = {
+  url: "https://xxxxx.supabase.co",  // Your Project URL
+  anonKey: "eyJhbGc..."  // Your anon public key
+};
 ```
 
-3. Replace with your actual values:
+3. Save the file
+4. Refresh the page
 
-```javascript
-const SUPABASE_URL = 'https://xxxxx.supabase.co'; // Your Project URL
-const SUPABASE_ANON_KEY = 'eyJhbGc...'; // Your anon public key
-```
+**Benefits:**
+- ✅ Configuration persists across browser sessions
+- ✅ Can be version controlled (if not sensitive)
+- ✅ Shared across all users of the same file
 
-4. Save the file
+### Configuration Priority
+
+If both methods are used, **Settings UI (localStorage) takes priority** over config.js. This allows:
+- Default configuration in config.js for all users
+- Individual overrides via Settings UI for testing or different environments
 
 ## Step 5: Test the Setup
 
@@ -113,9 +142,26 @@ For production use, consider:
 
 ### "Supabase not configured" Error
 
+**Using Settings UI:**
+- Open Settings and check the configuration status indicator
+- Verify the URL format is correct (must start with `https://`)
+- Verify the Anon Key starts with `eyJ`
+- Click "Test Connection" to diagnose the issue
+- Try clearing and re-entering the credentials
+
+**Using config.js:**
 - Verify you've replaced the placeholder URL and key
 - Check that the values are wrapped in quotes
 - Ensure no extra spaces or line breaks
+- Verify the file is named exactly `config.js`
+- Check browser console for loading errors
+
+### Configuration Not Saving
+
+- Check if localStorage is enabled in your browser
+- Try clearing browser cache and localStorage
+- Verify you're not in private/incognito mode (localStorage may be restricted)
+- Check browser console for quota exceeded errors
 
 ### Real-time Updates Not Working
 

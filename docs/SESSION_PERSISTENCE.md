@@ -20,10 +20,13 @@ The following data is stored in `localStorage`:
 - `participantId`: The user's unique participant ID
 
 ### Leaving a Session
-Users can now explicitly leave a session using the "Leave Session" button:
-- Removes the participant from the session
-- Clears local storage
-- Returns to the intro screen
+Users can leave a session at any time using the "Leave Session" button:
+- **Location**: Visible in the game header during all phases (Empathize, Ideate, Select, Prototype, Iterate)
+- **Confirmation**: Shows prompt before leaving to prevent accidents
+- **Different warnings**: Hosts vs participants see different messages
+- **Host warning**: Leaving ends session for all participants
+- **Participant option**: Can rejoin using session code
+- **Action**: Removes participant from session, clears local storage, returns to intro
 
 ## User Experience Improvements
 
@@ -75,21 +78,62 @@ On restore, the app:
 
 ### For Hosts
 1. Create a session with your name
-2. Share the session code with participants
-3. Use the copy button for easy sharing
-4. You can refresh without losing your session
+2. Session code displayed in game header with copy button
+3. Click copy button to share code with participants
+4. See participant count update in real-time
+5. You can refresh without losing your session
+6. **Warning**: Leaving as host ends the session for everyone
 
 ### For Participants
 1. Enter your name and the session code
 2. Join the session
 3. You can refresh and automatically rejoin
-4. Use "Leave Session" when done
+4. Use "Leave Session" when done (you'll be asked to confirm)
+5. You can rejoin anytime using the same session code
 
 ### Troubleshooting
 - **Can't rejoin after refresh**: Session may have expired (24 hours)
 - **Session not found**: Host may have left or session was deleted
 - **Duplicate participants**: Clear browser cache and rejoin
 - **Host can't start game after refresh**: Fixed - gameMode is now properly restored
+- **Score not updating correctly**: Fixed - score is now properly synced and restored
+
+## Bug Fixes
+
+### Score Synchronization (v1.1)
+- **Issue**: Score was not restored on page refresh
+- **Fix**: Added `collaborativeScore` to session restore logic
+- **Issue**: Score was being incremented twice in ideate phase for collaborative mode
+- **Fix**: Moved score increment inside the else block for non-collaborative mode
+- **Result**: Score now accurately reflects progress and persists across refreshes
+
+## Collaborative Features
+
+### Real-Time Text Editing (v1.2)
+
+For HMW Statement (Phase 0) and Prototype Description (Phase 3), team members can now:
+
+**See What Others Are Typing**
+- Text updates in real-time as team members type
+- "X is typing..." indicator shows who's currently editing
+- 300ms debounce prevents excessive database writes
+
+**Collaborative Editing**
+- All team members see the same draft text
+- Anyone can edit and contribute
+- Anyone can submit when ready
+- Draft text persists across page refreshes
+
+**Visual Feedback**
+- Typing indicator shows active contributor
+- Helper text explains collaborative editing
+- Draft text syncs automatically
+
+**Technical Implementation**
+- Debounced updates (300ms) to reduce database load
+- Real-time sync via Supabase subscriptions
+- Draft state separate from submitted state
+- Automatic cleanup on submission
 
 ## Future Enhancements
 - Session expiry warnings

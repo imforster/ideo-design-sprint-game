@@ -10,15 +10,16 @@ The game serves as both a learning tool for individuals new to design thinking a
 
 ### Requirement 1: Game Mode Selection
 
-**User Story:** As a user, I want to choose between solo and team modes, so that I can practice design thinking individually or collaborate with my team.
+**User Story:** As a user, I want to choose between solo, team, and collaborative modes, so that I can practice design thinking individually, with a local team, or with remote participants in real-time.
 
 #### Acceptance Criteria
 
-1. WHEN the user launches the application THEN the system SHALL display an intro screen with two mode options: Solo Mode and Team Mode
+1. WHEN the user launches the application THEN the system SHALL display an intro screen with three mode options: Solo Mode, Team Mode, and Collaborative Mode
 2. WHEN the user selects Solo Mode THEN the system SHALL proceed to the game start screen without requiring team setup
 3. WHEN the user selects Team Mode THEN the system SHALL display team setup fields for team name and team member names
 4. IF Team Mode is selected AND the user attempts to start without entering a team name or adding at least one team member THEN the system SHALL display an error message and prevent game start
-5. WHEN the user is in mode selection THEN the system SHALL display game information including estimated duration (15-20 min), potential points (100+), and available challenges count
+5. WHEN the user selects Collaborative Mode THEN the system SHALL display options to either create a new session or join an existing session
+6. WHEN the user is in mode selection THEN the system SHALL display game information including estimated duration (15-20 min), potential points (100+), and available challenges count
 
 ### Requirement 2: Challenge Management
 
@@ -263,3 +264,123 @@ The game serves as both a learning tool for individuals new to design thinking a
   "exportDate": "2025-10-05"
 }
 ```
+
+### Requirement 18: Collaborative Session Management
+
+**User Story:** As a facilitator or team member, I want to create or join real-time collaborative sessions, so that remote participants can work together on design sprints synchronously.
+
+#### Acceptance Criteria
+
+1. WHEN the user selects Collaborative Mode THEN the system SHALL display options to "Create Session" or "Join Session"
+2. WHEN creating a session THEN the system SHALL require the user to enter their name
+3. WHEN a session is created THEN the system SHALL generate a unique session code and display it prominently
+4. WHEN the user clicks "Join Session" THEN the system SHALL display fields for name and session code
+5. WHEN a valid session code is entered THEN the system SHALL add the participant to the session and sync their state
+6. IF an invalid session code is entered THEN the system SHALL display an error message
+7. WHEN a session is active THEN the system SHALL display the session code with a copy button in the game header
+8. WHEN the copy button is clicked THEN the system SHALL copy the session code to clipboard and display confirmation
+9. WHEN participants join or leave THEN the system SHALL update the participant count in real-time
+10. WHEN the session host starts the game THEN all participants SHALL see the same challenge and progress through phases together
+11. WHEN any participant submits input THEN all participants SHALL see the updated content in real-time
+
+### Requirement 19: Session Persistence and Restoration
+
+**User Story:** As a collaborative session participant, I want my session to persist across page refreshes, so that I can rejoin without losing progress or having to re-enter the session code.
+
+#### Acceptance Criteria
+
+1. WHEN a user creates or joins a session THEN the system SHALL save session information to localStorage
+2. WHEN the user refreshes the page THEN the system SHALL automatically restore the session from localStorage
+3. WHEN restoring a session THEN the system SHALL verify the session still exists in the database
+4. IF the session no longer exists THEN the system SHALL clear localStorage and return to intro screen
+5. WHEN a session is restored THEN the system SHALL sync all game state including current phase, ideas, prototype, and score
+6. WHEN a session is restored THEN the system SHALL restore the user's participant ID and role (host or participant)
+7. WHEN localStorage contains session data THEN the system SHALL restore it on application mount
+8. WHEN a user leaves a session THEN the system SHALL clear session data from localStorage
+
+### Requirement 20: Collaborative Text Editing
+
+**User Story:** As a collaborative session participant, I want to see what my teammates are typing in real-time for HMW statements and prototype descriptions, so that we can collaborate effectively on shared text content.
+
+#### Acceptance Criteria
+
+1. WHEN in Phase 0 (Empathize) in collaborative mode THEN the system SHALL enable real-time text synchronization for the HMW statement
+2. WHEN in Phase 3 (Prototype) in collaborative mode THEN the system SHALL enable real-time text synchronization for the prototype description
+3. WHEN a participant types in a collaborative text field THEN the system SHALL sync the text to all other participants with a 300ms debounce
+4. WHEN a participant is typing THEN the system SHALL display "[Name] is typing..." to other participants
+5. WHEN no one is typing THEN the system SHALL clear the typing indicator
+6. WHEN text is submitted THEN the system SHALL clear the draft text for all participants
+7. WHEN a participant refreshes during Phase 0 or 3 THEN the system SHALL restore the current draft text
+8. WHEN participants transition to a new phase THEN the system SHALL clear input fields for all participants
+9. WHEN collaborative text editing is active THEN the system SHALL display a helper message explaining that team members can see the text
+10. WHEN any participant submits the text THEN the system SHALL save it as final and advance all participants to the next phase
+
+### Requirement 21: Leave Session Confirmation
+
+**User Story:** As a session participant, I want to be warned before leaving a session, so that I don't accidentally disconnect and lose my progress or disrupt the team.
+
+#### Acceptance Criteria
+
+1. WHEN a participant clicks "Leave Session" THEN the system SHALL display a confirmation dialog
+2. WHEN the user is the session host THEN the confirmation SHALL warn that leaving will end the session for all participants
+3. WHEN the user is a regular participant THEN the confirmation SHALL inform them they can rejoin using the session code
+4. WHEN the user confirms leaving THEN the system SHALL remove them from the session participants list
+5. WHEN the user confirms leaving THEN the system SHALL clear session data from localStorage
+6. WHEN the user confirms leaving THEN the system SHALL return them to the intro screen
+7. WHEN the user cancels the leave action THEN the system SHALL close the dialog and keep them in the session
+8. WHEN the session host leaves THEN the system SHALL mark the session as ended for all participants
+9. WHEN a regular participant leaves THEN other participants SHALL see the updated participant count
+10. WHEN the "Leave Session" button is displayed THEN it SHALL be visible during all game phases in the header
+
+### Requirement 22: Real-Time Participant Awareness
+
+**User Story:** As a collaborative session participant, I want to see who else is in the session and identify myself, so that I know who I'm collaborating with and can coordinate effectively.
+
+#### Acceptance Criteria
+
+1. WHEN in a collaborative session THEN the system SHALL display a list of all participants
+2. WHEN displaying participants THEN the system SHALL show each participant's name
+3. WHEN displaying the current user THEN the system SHALL add a visual indicator (ring/border) and "(You)" label
+4. WHEN displaying the session host THEN the system SHALL add a "Host" badge
+5. WHEN a new participant joins THEN the system SHALL update the participant list in real-time for all users
+6. WHEN a participant leaves THEN the system SHALL remove them from the list in real-time
+7. WHEN displaying the session code THEN the system SHALL show the current participant count
+8. WHEN the participant count changes THEN the system SHALL update the display immediately
+9. WHEN participants are displayed THEN they SHALL be shown with colored badges for visual distinction
+10. WHEN the session is active THEN participant information SHALL be visible throughout all game phases
+
+
+### Requirement 23: Supabase Configuration in Settings
+
+**User Story:** As a facilitator, I want to configure Supabase credentials through the settings UI and have them stored locally, so that I can enable collaborative mode without editing code files.
+
+#### Acceptance Criteria
+
+1. WHEN the settings modal is opened THEN the system SHALL display a "Collaborative Mode Configuration" section
+2. WHEN the configuration section is displayed THEN it SHALL show input fields for Supabase URL and Supabase Anon Key
+3. WHEN the configuration section is displayed THEN it SHALL show the current configuration status (configured via config.js, localStorage, or not configured)
+4. WHEN Supabase credentials exist in config.js THEN the system SHALL use those as default values
+5. WHEN the user enters Supabase URL and Anon Key in settings THEN the system SHALL validate the format
+6. WHEN the user saves valid Supabase credentials THEN the system SHALL store them in localStorage with key `supabaseConfig`
+7. WHEN credentials are stored in localStorage THEN they SHALL override any credentials from config.js
+8. WHEN the application initializes THEN it SHALL check localStorage first, then config.js, for Supabase credentials
+9. WHEN the user clicks "Clear Configuration" THEN the system SHALL remove credentials from localStorage and revert to config.js values
+10. WHEN credentials are saved THEN the system SHALL display a success message and enable the Collaborative mode option
+11. WHEN no valid credentials are configured THEN the system SHALL display a warning in the Collaborative mode section
+12. WHEN the user attempts to create or join a session without valid credentials THEN the system SHALL display an error message with instructions to configure Supabase
+13. WHEN displaying the configuration section THEN it SHALL include a link or instructions to COLLABORATIVE_SETUP.md
+14. WHEN credentials are entered THEN the system SHALL mask the Anon Key input (show as password field with toggle to reveal)
+15. WHEN the user tests the connection THEN the system SHALL attempt to connect to Supabase and display success or error message
+
+**localStorage Schema:**
+```json
+{
+  "supabaseUrl": "https://xxxxx.supabase.co",
+  "supabaseAnonKey": "eyJhbGc..."
+}
+```
+
+**Priority Order:**
+1. localStorage configuration (highest priority)
+2. config.js configuration
+3. No configuration (collaborative mode disabled)

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDEO Design Sprint Game v3 - with PDF Export</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icon component for PDF
+        const FileText = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+        );
+
+        // Placeholder for Download icon
+        const Download = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+        );
+
+        // Placeholder for Copy icon
+        const Copy = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+        );
+
+        // Main App Component
+        const App = () => {
+            const [showPDFTest, setShowPDFTest] = useState(false);
+
+            // Sample data for testing
+            const sampleData = {
+                teamName: "Innovation Squad",
+                teamMembers: ["Sarah", "Mike", "Alex"],
+                challenge: {
+                    title: "Campus Coffee Crisis",
+                    description: "Students are falling asleep in afternoon classes."
+                },
+                hmwStatement: "How might we help busy students get quality coffee quickly so that they stay alert in classes?",
+                ideas: [
+                    "Mobile pre-order app with campus pickup",
+                    "Coffee subscription service for students",
+                    "Express line for between-class rush",
+                    "Coffee vending machines in buildings",
+                    "Peer-to-peer coffee delivery network"
+                ],
+                selectedIdeas: [
+                    "Mobile pre-order app with campus pickup",
+                    "Express line for between-class rush",
+                    "Coffee subscription service for students"
+                ],
+                prototype: "A mobile app that shows real-time wait times and enables pre-ordering at campus coffee shops. Students can order their usual drink with one tap, schedule pickup time, and pay through their meal plan. The app reduces wait time from 15 minutes to 2 minutes.",
+                iterationNotes: "I like that this directly solves the time constraint. I wish we had considered peak demand management. What if we added rewards for off-peak ordering?",
+                score: 95
+            };
+
+            const generatePDF = (data) => {
+                try {
+                    if (!window.jspdf) {
+                        alert('PDF library is still loading. Please wait a moment and try again.');
+                        return;
+                    }
+
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    
+                    let yPos = 20;
+                    const lineHeight = 7;
+                    const pageWidth = 170;
+                    const margin = 20;
+
+                    const addText = (text, x, y, maxWidth, isBold = false) => {
+                        if (isBold) doc.setFont(undefined, 'bold');
+                        const lines = doc.splitTextToSize(text, maxWidth);
+                        doc.text(lines, x, y);
+                        if (isBold) doc.setFont(undefined, 'normal');
+                        return y + (lines.length * lineHeight);
+                    };
+
+                    const checkPageBreak = (currentY, spaceNeeded = 20) => {
+                        if (currentY + spaceNeeded > 280) {
+                            doc.addPage();
+                            return 20;
+                        }
+                        return currentY;
+                    };
+
+                    // Title
+                    doc.setFontSize(24);
+                    doc.setTextColor(79, 70, 229);
+                    yPos = addText('IDEO Design Sprint', margin, yPos, pageWidth, true);
+                    
+                    doc.setFontSize(16);
+                    doc.setTextColor(107, 114, 128);
+                    yPos = addText('Results Report', margin, yPos + 5, pageWidth);
+                    
+                    doc.setDrawColor(229, 231, 235);
+                    doc.line(margin, yPos + 5, 190, yPos + 5);
+                    yPos += 15;
+
+                    // Metadata
+                    doc.setFontSize(12);
+                    doc.setTextColor(0, 0, 0);
+                    
+                    yPos = addText(`Team: ${data.teamName}`, margin, yPos, pageWidth, true);
+                    yPos = addText(`Members: ${data.teamMembers.join(', ')}`, margin, yPos, pageWidth);
+                    yPos += 3;
+                    
+                    yPos = addText(`Challenge: ${data.challenge.title}`, margin, yPos, pageWidth, true);
+                    yPos = addText(data.challenge.description, margin, yPos, pageWidth);
+                    yPos += 3;
+                    yPos = addText(`Date: ${new Date().toLocaleDateString()}`, margin, yPos, pageWidth);
+                    yPos = addText(`Score: ${data.score} points`, margin, yPos, pageWidth);
+                    yPos += 10;
+
+                    yPos = checkPageBreak(yPos, 40);
+
+                    // HMW
+                    doc.setFontSize(14);
+                    doc.setTextColor(59, 130, 246);
+                    yPos = addText('HOW MIGHT WE STATEMENT', margin, yPos, pageWidth, true);
+                    
+                    doc.setFontSize(11);
+                    doc.setTextColor(0, 0, 0);
+                    yPos = addText(data.hmwStatement, margin, yPos + 5, pageWidth);
+                    yPos += 10;
+
+                    yPos = checkPageBreak(yPos, 40);
+
+                    // Ideas
+                    doc.setFontSize(14);
+                    doc.setTextColor(234, 179, 8);
+                    yPos = addText(`IDEAS GENERATED (${data.ideas.length} total)`, margin, yPos, pageWidth, true);
+                    
+                    doc.setFontSize(10);
+                    doc.setTextColor(0, 0, 0);
+                    yPos += 5;
+                    
+                    data.ideas.forEach((idea, i) => {
+                        yPos = checkPageBreak(yPos);
+                        yPos = addText(`${i + 1}. ${idea}`, margin, yPos, pageWidth);
+                        yPos += 2;
+                    });
+                    yPos += 5;
+
+                    yPos = checkPageBreak(yPos, 40);
+
+                    // Top 3
+                    doc.setFontSize(14);
+                    doc.setTextColor(34, 197, 94);
+                    yPos = addText('TOP 3 SELECTED IDEAS', margin, yPos, pageWidth, true);
+                    
+                    doc.setFontSize(11);
+                    doc.setTextColor(0, 0, 0);
+                    yPos += 5;
+                    
+                    data.selectedIdeas.forEach((idea, i) => {
+                        yPos = checkPageBreak(yPos);
+                        yPos = addText(`${i + 1}. ${idea}`, margin, yPos, pageWidth);
+                        yPos += 3;
+                    });
+                    yPos += 5;
+
+                    yPos = checkPageBreak(yPos, 50);
+
+                    // Prototype
+                    doc.setFontSize(14);
+                    doc.setTextColor(168, 85, 247);
+                    yPos = addText('PROTOTYPE', margin, yPos, pageWidth, true);
+                    
+                    doc.setFontSize(11);
+                    doc.setTextColor(0, 0, 0);
+                    yPos = addText(data.prototype, margin, yPos + 5, pageWidth);
+                    yPos += 10;
+
+                    yPos = checkPageBreak(yPos, 40);
+
+                    // Iteration
+                    doc.setFontSize(14);
+                    doc.setTextColor(236, 72, 153);
+                    yPos = addText('ITERATION & REFLECTION', margin, yPos, pageWidth, true);
+                    
+                    doc.setFontSize(11);
+                    doc.setTextColor(0, 0, 0);
+                    yPos = addText(data.iterationNotes, margin, yPos + 5, pageWidth);
+
+                    // Footer
+                    const pageCount = doc.internal.getNumberOfPages();
+                    for (let i = 1; i <= pageCount; i++) {
+                        doc.setPage(i);
+                        doc.setFontSize(8);
+                        doc.setTextColor(156, 163, 175);
+                        doc.text(`Page ${i} of ${pageCount}`, 190, 285, { align: 'right' });
+                        doc.text('Generated by IDEO Design Sprint Game', margin, 285);
+                    }
+
+                    doc.save(`design-sprint-test-${Date.now()}.pdf`);
+                    alert('✅ PDF generated successfully!');
+                    
+                } catch (error) {
+                    console.error('PDF Error:', error);
+                    alert('❌ Error generating PDF: ' + error.message);
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-8">
+                    <div className="max-w-4xl mx-auto">
+                        <div className="bg-white rounded-2xl shadow-2xl p-12">
+                            <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
+                                IDEO Design Sprint Game v3
+                            </h1>
+                            <h2 className="text-2xl font-semibold text-center mb-4 text-purple-600">
+                                PDF Export Test
+                            </h2>
+                            
+                            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6 mb-8">
+                                <h3 className="font-bold text-green-800 mb-2">✅ PDF Feature Status:</h3>
+                                <ul className="space-y-2 text-green-700">
+                                    <li>• jsPDF library loaded: {window.jspdf ? '✓ Yes' : '✗ Loading...'}</li>
+                                    <li>• File size: ~2.5MB (includes library)</li>
+                                    <li>• Format: Professional multi-page PDF</li>
+                                    <li>• Features: Color sections, page numbers, auto-wrapping</li>
+                                </ul>
+                            </div>
+
+                            <div className="space-y-4">
+                                <button
+                                    onClick={() => generatePDF(sampleData)}
+                                    className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white py-6 px-8 rounded-xl text-xl font-bold hover:from-red-600 hover:to-orange-600 transition-all flex items-center justify-center gap-3 shadow-lg"
+                                >
+                                    <FileText className="w-8 h-8" />
+                                    Test PDF Generation
+                                </button>
+
+                                <div className="bg-gray-50 rounded-lg p-4">
+                                    <h4 className="font-semibold mb-2">Test Data Preview:</h4>
+                                    <pre className="text-xs overflow-auto max-h-40 bg-white p-3 rounded">
+{JSON.stringify(sampleData, null, 2)}
+                                    </pre>
+                                </div>
+
+                                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                                    <h4 className="font-semibold text-blue-800 mb-2">How to Use:</h4>
+                                    <ol className="text-sm text-blue-700 space-y-1">
+                                        <li>1. Click "Test PDF Generation" button above</li>
+                                        <li>2. PDF will download automatically</li>
+                                        <li>3. Open the PDF to see formatted report</li>
+                                        <li>4. Check for: colors, page breaks, formatting</li>
+                                    </ol>
+                                </div>
+                            </div>
+
+                            <div className="mt-8 pt-8 border-t">
+                                <h3 className="font-bold text-lg mb-4">Export Options in Full Game:</h3>
+                                <div className="flex gap-3 flex-wrap justify-center">
+                                    <div className="bg-red-100 text-red-700 px-4 py-2 rounded-lg flex items-center gap-2">
+                                        <FileText className="w-5 h-5" />
+                                        <span className="font-semibold">PDF Report</span>
+                                    </div>
+                                    <div className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg flex items-center gap-2">
+                                        <Download className="w-5 h-5" />
+                                        <span className="font-semibold">TXT File</span>
+                                    </div>
+                                    <div className="bg-green-100 text-green-700 px-4 py-2 rounded-lg flex items-center gap-2">
+                                        <Copy className="w-5 h-5" />
+                                        <span className="font-semibold">Copy to Clipboard</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

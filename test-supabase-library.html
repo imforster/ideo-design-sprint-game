@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Supabase Library</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Supabase Library Test</h1>
+    <div id="result"></div>
+    
+    <script>
+        window.addEventListener('load', () => {
+            const resultDiv = document.getElementById('result');
+            
+            // Check if window.supabase exists
+            if (typeof window.supabase !== 'undefined') {
+                resultDiv.innerHTML += '<p>✅ window.supabase is defined</p>';
+                resultDiv.innerHTML += '<p>Type: ' + typeof window.supabase + '</p>';
+                
+                // Show structure
+                try {
+                    resultDiv.innerHTML += '<p>Keys: ' + Object.keys(window.supabase).join(', ') + '</p>';
+                    
+                    // Check different possible locations
+                    resultDiv.innerHTML += '<h3>Checking possible locations:</h3>';
+                    
+                    if (typeof window.supabase.createClient === 'function') {
+                        resultDiv.innerHTML += '<p>✅ window.supabase.createClient is a function</p>';
+                    } else {
+                        resultDiv.innerHTML += '<p>❌ window.supabase.createClient: ' + typeof window.supabase.createClient + '</p>';
+                    }
+                    
+                    if (window.supabase.default && typeof window.supabase.default.createClient === 'function') {
+                        resultDiv.innerHTML += '<p>✅ window.supabase.default.createClient is a function</p>';
+                    } else {
+                        resultDiv.innerHTML += '<p>❌ window.supabase.default.createClient not found</p>';
+                    }
+                    
+                    if (typeof window.supabase === 'function') {
+                        resultDiv.innerHTML += '<p>✅ window.supabase itself is a function (might be createClient)</p>';
+                    }
+                    
+                    // Show full structure
+                    resultDiv.innerHTML += '<h3>Full Structure:</h3>';
+                    resultDiv.innerHTML += '<pre>' + JSON.stringify(Object.keys(window.supabase), null, 2) + '</pre>';
+                    
+                } catch (error) {
+                    resultDiv.innerHTML += '<p>❌ Error inspecting structure: ' + error.message + '</p>';
+                }
+            } else {
+                resultDiv.innerHTML += '<p>❌ window.supabase is NOT defined</p>';
+                resultDiv.innerHTML += '<p>Available on window: ' + Object.keys(window).filter(k => k.toLowerCase().includes('supabase')).join(', ') + '</p>';
+            }
+        });
+    </script>
+</body>
+</html>

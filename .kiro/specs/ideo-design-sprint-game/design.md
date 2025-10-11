@@ -2,18 +2,20 @@
 
 ## Overview
 
-The IDEO Design Sprint Game is a single-page React application that provides an interactive, gamified learning experience for design thinking methodology. The application uses a state machine pattern to manage game flow through five distinct phases, with support for both solo and team collaboration modes.
+The IDEO Design Sprint Game is a single-page React application that provides an interactive, gamified learning experience for design thinking methodology. The application uses a state machine pattern to manage game flow through five distinct phases, with support for solo, local team, and real-time collaborative modes.
 
-The design prioritizes simplicity, offline capability, and ease of distribution. The entire application is self-contained in a single HTML file with inline React code, making it trivially shareable and requiring no build process or server infrastructure.
+The design prioritizes simplicity, offline capability (for solo/team modes), and ease of distribution. The core application is self-contained in a single HTML file with inline React code, making it trivially shareable and requiring no build process. The collaborative mode extends this with real-time synchronization via Supabase, enabling distributed teams to work together on design sprints.
 
 ### Design Goals
 
 1. **Zero Installation**: Users should be able to open the HTML file and start immediately
-2. **Offline First**: After initial CDN loads, the game should work without internet
-3. **Educational**: Guide users through authentic design thinking methodology
-4. **Engaging**: Use gamification (points, progress, visual feedback) to maintain motivation
-5. **Shareable**: Enable easy export and sharing of results
-6. **Flexible**: Support both individual learning and team facilitation
+2. **Offline First**: After initial CDN loads, solo/team modes work without internet
+3. **Real-Time Collaboration**: Enable distributed teams to work together synchronously
+4. **Educational**: Guide users through authentic design thinking methodology
+5. **Engaging**: Use gamification (points, progress, visual feedback) to maintain motivation
+6. **Shareable**: Enable easy export and sharing of results
+7. **Flexible**: Support individual learning, local team facilitation, and remote collaboration
+8. **Persistent**: Maintain session state across page refreshes for collaborative mode
 
 ## Architecture
 
@@ -24,6 +26,9 @@ The design prioritizes simplicity, offline capability, and ease of distribution.
 - **Babel Standalone**: JSX transformation in browser
 - **Lucide React**: Icon library (inline SVG components)
 - **Vanilla JavaScript**: State management and game logic
+- **Supabase**: Real-time database and synchronization for collaborative mode
+- **jsPDF**: PDF generation library (loaded via CDN)
+- **localStorage**: Session persistence for collaborative mode
 
 ### Application Structure
 
@@ -79,7 +84,7 @@ The `IDEOGame` component is the root component that manages all application stat
 ```typescript
 // Game Flow State
 gameState: 'intro' | 'playing' | 'complete'
-gameMode: 'solo' | 'team' | null
+gameMode: 'solo' | 'team' | 'collaborative' | null
 currentPhase: 0 | 1 | 2 | 3 | 4  // Index into phases array
 
 // Challenge State
@@ -96,10 +101,22 @@ prototypeImages: File[]  // Uploaded images for prototype
 hmwStatement: string
 iterationNotes: string
 
-// Team State
+// Team State (Local Team Mode)
 teamName: string
 playerName: string
 teamMembers: string[]
+
+// Collaborative Session State
+sessionId: string | null  // UUID of current session
+isHost: boolean  // Whether current user is session host
+userName: string  // Display name for collaborative mode
+joinCode: string  // Input field for joining sessions
+participants: Participant[]  // List of session participants
+isCollaborative: boolean  // Whether in collaborative mode
+participantId: string | null  // Current user's participant UUID
+draftHmw: string  // Shared draft for HMW statement
+draftPrototype: string  // Shared draft for prototype description
+currentTyper: string | null  // Name of person currently typing
 
 // Game Mechanics State
 score: number
@@ -169,7 +186,7 @@ The application renders different screens based on `gameState`:
 
 #### 1. Intro Screen (`gameState === 'intro'`)
 
-**Purpose**: Mode selection, team setup, and game initialization
+**Purpose**: Mode selection, team setup, session management, and game initialization
 
 **Layout Structure:**
 ```
@@ -177,13 +194,19 @@ The application renders different screens based on `gameState`:
 │  Header (Title + Settings Button)  │
 ├─────────────────────────────────────┤
 │  Mode Selection Cards               │
-│  ┌──────────┐  ┌──────────┐       │
-│  │   Solo   │  │   Team   │       │
-│  └──────────┘  └──────────┘       │
+│  ┌────────┐ ┌────────┐ ┌────────┐ │
+│  │  Solo  │ │  Team  │ │ Collab │ │
+│  └────────┘ └────────┘ └────────┘ │
 ├─────────────────────────────────────┤
 │  Team Setup (if team mode)          │
 │  - Team Name Input                  │
 │  - Member Management                │
+├─────────────────────────────────────┤
+│  Collaborative Setup (if collab)    │
+│  - Create Session (with name input) │
+│  - Join Session (name + code)       │
+│  - Active Session Info              │
+│  - Participant List                 │
 ├─────────────────────────────────────┤
 │  Game Info (Duration, Points)       │
 ├─────────────────────────────────────┤
@@ -192,10 +215,15 @@ The application renders different screens based on `gameState`:
 ```
 
 **Conditional Rendering:**
-- Mode selection cards: Show when `gameMode === null`
+- Mode selection cards: Show when `gameMode === null` and `!isCollaborative`
 - Team setup panel: Show when `gameMode === 'team'`
 - Solo info cards: Show when `gameMode === 'solo'`
-- Back button: Show when `gameMode !== null`
+- Collaborative setup: Show when `gameMode === 'collaborative'` or `isCollaborative === true`
+- Create/Join options: Show when `!sessionId`
+- Active session info: Show when `sessionId` exists
+- Participant list: Show when `isCollaborative && participants.length > 0`
+- Back button: Show when `gameMode !== null` and `!isCollaborative`
+- Leave Session button: Show when `isCollaborative`
 
 #### 2. Playing Screen (`gameState === 'playing'`)
 
@@ -208,6 +236,11 @@ The application renders different screens based on `gameState`:
 │  - Challenge Info                   │
 │  - Score Display                    │
 │  - Team Info (if team mode)         │
+│  - Leave Session (if collaborative) │
+├─────────────────────────────────────┤
+│  Session Code Bar (if collaborative)│
+│  - Session Code with Copy Button    │
+│  - Participant Count                │
 ├─────────────────────────────────────┤
 │  Phase Progress Indicator           │
 │  [●]──[○]──[○]──[○]──[○]          │
@@ -217,9 +250,11 @@ The application renders different screens based on `gameState`:
 │  - Instructions                     │
 │  - Tip                              │
 │  - Phase-Specific Content           │
+│  - Typing Indicator (if collab)    │
 ├─────────────────────────────────────┤
 │  Input Area (phase-dependent)       │
 │  - Text Input / Selection UI        │
+│  - Collaborative Helper Text        │
 │  - Submit/Next Buttons              │
 └─────────────────────────────────────┘
 ```
@@ -228,32 +263,43 @@ The application renders different screens based on `gameState`:
 
 *Phase 0 - Empathize:*
 - Text input for HMW statement
-- Submit button
+- **Collaborative**: Real-time text sync with 300ms debounce
+- **Collaborative**: "[Name] is typing..." indicator
+- **Collaborative**: Helper text about team visibility
+- Submit button (any participant can submit)
 - Validation: Must include "how might we"
 
 *Phase 1 - Ideate:*
 - Text input for ideas
 - Timer display and controls
 - List of submitted ideas
+- **Collaborative**: Ideas attributed to submitter
+- **Collaborative**: Real-time idea list updates
 - Minimum 5 ideas to proceed
 
 *Phase 2 - Select:*
 - Grid of clickable idea cards
 - Visual selection state
+- **Collaborative**: Host controls selection
+- **Collaborative**: All participants see selections in real-time
 - Exactly 3 selections required
 - Next button (enabled when 3 selected)
 
 *Phase 3 - Prototype:*
 - Textarea for prototype description
+- **Collaborative**: Real-time text sync with 300ms debounce
+- **Collaborative**: "[Name] is typing..." indicator
+- **Collaborative**: Helper text about team visibility
 - Image upload button with file picker
 - Image preview thumbnails (up to 3 images)
 - Remove image buttons
-- Submit button
+- Submit button (any participant can submit)
 - Validation: Minimum 20 characters
 
 *Phase 4 - Iterate:*
 - Textarea for iteration notes
-- Submit button
+- **Collaborative**: Real-time sync for final notes
+- Submit button (any participant can submit)
 - Validation: Minimum 15 characters
 - Completion triggers transition to Complete screen
 
@@ -310,6 +356,14 @@ The application renders different screens based on `gameState`:
 - Challenge Selection section with checkboxes for each challenge
 - Challenge list with topic badges and enable/disable toggles
 - Warning message when no challenges are enabled
+- **Collaborative Mode Configuration section** (new)
+  - Supabase URL input field
+  - Supabase Anon Key input field (password type with toggle)
+  - Configuration status indicator (config.js, localStorage, or not configured)
+  - Test Connection button
+  - Save Configuration button
+  - Clear Configuration button
+  - Link to COLLABORATIVE_SETUP.md documentation
 
 #### Share Modal
 
@@ -509,6 +563,61 @@ Generated by IDEO Design Sprint Game
 - Each challenge must have all required fields (title, description, persona, painPoint, topic)
 - Topic must be a non-empty string
 - All string fields must be non-empty after trimming
+
+### Collaborative Session Data Model
+
+**Participant:**
+```typescript
+interface Participant {
+  id: string;           // UUID
+  name: string;         // Display name
+  isHost: boolean;      // Host flag
+}
+```
+
+**Session Data (Supabase):**
+```typescript
+interface SessionData {
+  session_id: string;              // UUID
+  data: {
+    currentPhase: number;          // 0-4
+    timerActive: boolean;
+    timerDuration: number;         // seconds
+    challenge: Challenge | null;
+    allIdeas: string[];            // All submitted ideas
+    selectedIdeas: string[];       // Top 3 selected
+    prototype: string | null;
+    prototypeImages: string[];     // base64 encoded
+    hmwStatement: string;
+    iterationNotes: string;
+    participants: Participant[];
+    collaborativeScore: number;
+    draftHmw: string;             // Real-time draft
+    hmwTyper: string | null;      // Who's typing HMW
+    draftPrototype: string;       // Real-time draft
+    prototypeTyper: string | null; // Who's typing prototype
+  }
+}
+```
+
+**localStorage Session:**
+```typescript
+interface StoredSession {
+  sessionId: string;      // UUID
+  isHost: boolean;
+  userName: string;
+  participantId: string;  // UUID
+}
+```
+
+**Database Tables:**
+- `sessions`: Session metadata (id, host_id, created_at)
+- `session_data`: Session state (session_id, data JSONB)
+
+**Real-Time Subscriptions:**
+- Subscribe to `session_data` changes for live updates
+- Debounced updates (300ms) for text input
+- Immediate updates for phase changes and submissions
 
 ## Error Handling
 
@@ -803,6 +912,535 @@ Generated by IDEO Design Sprint Game
 **HTML File:**
 - No caching headers needed
 - Users always have latest version they downloaded
+
+## Collaborative Mode Architecture
+
+### Overview
+
+Collaborative mode enables real-time synchronization between multiple participants working on the same design sprint. It uses Supabase for real-time database synchronization and localStorage for session persistence.
+
+### Session Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Intro: App Launch
+    Intro --> CheckStorage: Has Stored Session?
+    CheckStorage --> ValidateSession: Yes
+    CheckStorage --> ModeSelection: No
+    ValidateSession --> RestoreSession: Valid
+    ValidateSession --> ModeSelection: Invalid
+    RestoreSession --> Playing: Session Active
+    ModeSelection --> CreateSession: Create
+    ModeSelection --> JoinSession: Join
+    CreateSession --> Playing: Host
+    JoinSession --> Playing: Participant
+    Playing --> LeaveConfirm: Leave Button
+    LeaveConfirm --> Intro: Confirmed
+    LeaveConfirm --> Playing: Cancelled
+    Playing --> Complete: Finish Sprint
+    Complete --> Intro: Back to Start
+```
+
+### Real-Time Synchronization
+
+**Synchronization Strategy:**
+- **Immediate Sync**: Phase changes, submissions, participant joins/leaves
+- **Debounced Sync**: Text input (300ms delay)
+- **Subscription-Based**: All clients subscribe to session_data changes
+- **Optimistic Updates**: Local state updates immediately, then syncs
+
+**Conflict Resolution:**
+- Last write wins for text input
+- Host has authority for phase progression
+- Submissions are first-come-first-served
+- Participant list is authoritative from database
+
+### Session Persistence
+
+**Storage Strategy:**
+```javascript
+// Save on session create/join
+localStorage.setItem('ideoGameSession', JSON.stringify({
+  sessionId,
+  isHost,
+  userName,
+  participantId
+}));
+
+// Restore on mount
+useEffect(() => {
+  const stored = localStorage.getItem('ideoGameSession');
+  if (stored) {
+    restoreSession(JSON.parse(stored));
+  }
+}, []);
+
+// Clear on leave
+localStorage.removeItem('ideoGameSession');
+```
+
+**Restoration Process:**
+1. Check localStorage for session data
+2. Verify session exists in Supabase
+3. Restore participant state
+4. Sync game state from database
+5. Subscribe to real-time updates
+6. Resume from current phase
+
+### Collaborative Text Editing
+
+**Implementation:**
+```javascript
+// Debounced sync function
+const debouncedSync = useCallback(
+  debounce(async (text, field) => {
+    await supabase
+      .from('session_data')
+      .update({
+        data: {
+          ...currentData,
+          [field]: text,
+          [`${field}Typer`]: userName
+        }
+      })
+      .eq('session_id', sessionId);
+  }, 300),
+  [sessionId, userName]
+);
+
+// On text input
+const handleTextChange = (e) => {
+  const text = e.target.value;
+  setUserInput(text); // Immediate local update
+  debouncedSync(text, 'draftHmw'); // Debounced sync
+};
+```
+
+**Features:**
+- Real-time text synchronization
+- Typing indicators
+- Draft persistence
+- Automatic cleanup on submission
+
+### Participant Management
+
+**Join Flow:**
+```javascript
+const joinSession = async (code, name) => {
+  // 1. Verify session exists
+  const { data: session } = await supabase
+    .from('sessions')
+    .select('*')
+    .eq('id', code)
+    .single();
+  
+  if (!session) throw new Error('Session not found');
+  
+  // 2. Create participant
+  const participantId = crypto.randomUUID();
+  const participant = { id: participantId, name, isHost: false };
+  
+  // 3. Add to session
+  await supabase
+    .from('session_data')
+    .update({
+      data: {
+        ...currentData,
+        participants: [...currentData.participants, participant]
+      }
+    })
+    .eq('session_id', code);
+  
+  // 4. Save to localStorage
+  saveSessionToStorage({ sessionId: code, isHost: false, userName: name, participantId });
+  
+  // 5. Subscribe to updates
+  subscribeToSession(code);
+};
+```
+
+**Leave Flow:**
+```javascript
+const leaveSession = async () => {
+  // 1. Show confirmation
+  const confirmed = window.confirm(
+    isHost 
+      ? 'Leaving will end the session for all participants. Continue?'
+      : 'You can rejoin using the session code. Leave session?'
+  );
+  
+  if (!confirmed) return;
+  
+  // 2. Remove from participants
+  await supabase
+    .from('session_data')
+    .update({
+      data: {
+        ...currentData,
+        participants: currentData.participants.filter(p => p.id !== participantId)
+      }
+    })
+    .eq('session_id', sessionId);
+  
+  // 3. Clear localStorage
+  clearSessionFromStorage();
+  
+  // 4. Reset state
+  resetToIntro();
+};
+```
+
+### Session Code Sharing
+
+**UI Components:**
+```jsx
+{isCollaborative && sessionId && (
+  <div className="session-code-bar">
+    <span>Session Code:</span>
+    <code>{sessionId}</code>
+    <button onClick={copySessionCode}>
+      <CopyIcon />
+    </button>
+    <span>{participants.length} participant(s)</span>
+  </div>
+)}
+```
+
+**Copy Functionality:**
+```javascript
+const copySessionCode = async () => {
+  try {
+    await navigator.clipboard.writeText(sessionId);
+    alert('Session code copied to clipboard!');
+  } catch (error) {
+    alert(`Failed to copy. Session code: ${sessionId}`);
+  }
+};
+```
+
+### Error Handling
+
+**Session Restoration Errors:**
+- Session not found: Clear localStorage, return to intro
+- Network error: Show error message, allow retry
+- Invalid data: Clear corrupted data, start fresh
+
+**Real-Time Sync Errors:**
+- Connection lost: Show warning, queue updates
+- Conflict detected: Last write wins, notify user
+- Permission denied: Check Supabase RLS policies
+
+**Participant Management Errors:**
+- Duplicate join: Prevent or merge participants
+- Host disconnect: Optionally transfer host role
+- All participants leave: Mark session as ended
+
+### Performance Considerations
+
+**Optimization Strategies:**
+- Debounce text input (300ms)
+- Batch multiple updates
+- Use selective subscriptions
+- Implement connection pooling
+- Cache participant list locally
+
+**Scalability Limits:**
+- Recommended: 2-10 participants per session
+- Maximum: 20 participants (soft limit)
+- Database writes: ~3-4 per second with debouncing
+- Real-time latency: <500ms typical
+
+### Security Considerations
+
+**Access Control:**
+- Row Level Security (RLS) on Supabase tables
+- Session IDs are UUIDs (hard to guess)
+- No authentication required (trade-off for simplicity)
+- Sessions expire after 24 hours
+
+**Data Privacy:**
+- All data stored in Supabase
+- No sensitive information collected
+- Session data visible to all participants
+- No permanent user accounts
+
+### Supabase Configuration Management
+
+**Overview:**
+Allow users to configure Supabase credentials through the settings UI instead of editing code files, with localStorage taking priority over config.js.
+
+**Configuration Priority:**
+```javascript
+// 1. Check localStorage first (highest priority)
+const storedConfig = localStorage.getItem('supabaseConfig');
+if (storedConfig) {
+  const { supabaseUrl, supabaseAnonKey } = JSON.parse(storedConfig);
+  supabase = createClient(supabaseUrl, supabaseAnonKey);
+}
+// 2. Fall back to config.js
+else if (window.SUPABASE_CONFIG) {
+  supabase = createClient(
+    window.SUPABASE_CONFIG.url,
+    window.SUPABASE_CONFIG.anonKey
+  );
+}
+// 3. No configuration - collaborative mode disabled
+else {
+  supabase = null;
+}
+```
+
+**State Variables:**
+```typescript
+// Supabase Configuration State
+supabaseUrl: string  // Input field value
+supabaseAnonKey: string  // Input field value
+showSupabaseKey: boolean  // Toggle for password visibility
+configSource: 'localStorage' | 'config.js' | 'none'  // Current config source
+isTestingConnection: boolean  // Loading state for test button
+connectionTestResult: 'success' | 'error' | null  // Test result
+```
+
+**localStorage Schema:**
+```json
+{
+  "supabaseUrl": "https://xxxxx.supabase.co",
+  "supabaseAnonKey": "eyJhbGc..."
+}
+```
+
+**UI Components:**
+
+1. **Configuration Status Indicator**
+```jsx
+<div className="config-status">
+  {configSource === 'localStorage' && (
+    <span className="text-green-600">
+      ✓ Configured via Settings (localStorage)
+    </span>
+  )}
+  {configSource === 'config.js' && (
+    <span className="text-blue-600">
+      ✓ Configured via config.js
+    </span>
+  )}
+  {configSource === 'none' && (
+    <span className="text-yellow-600">
+      ⚠ Not configured - Collaborative mode unavailable
+    </span>
+  )}
+</div>
+```
+
+2. **Input Fields**
+```jsx
+<input
+  type="url"
+  placeholder="https://xxxxx.supabase.co"
+  value={supabaseUrl}
+  onChange={(e) => setSupabaseUrl(e.target.value)}
+/>
+
+<div className="password-field">
+  <input
+    type={showSupabaseKey ? 'text' : 'password'}
+    placeholder="eyJhbGc..."
+    value={supabaseAnonKey}
+    onChange={(e) => setSupabaseAnonKey(e.target.value)}
+  />
+  <button onClick={() => setShowSupabaseKey(!showSupabaseKey)}>
+    {showSupabaseKey ? 'Hide' : 'Show'}
+  </button>
+</div>
+```
+
+3. **Action Buttons**
+```jsx
+<button onClick={testConnection} disabled={isTestingConnection}>
+  {isTestingConnection ? 'Testing...' : 'Test Connection'}
+</button>
+
+<button onClick={saveConfiguration}>
+  Save Configuration
+</button>
+
+<button onClick={clearConfiguration}>
+  Clear Configuration
+</button>
+```
+
+**Implementation Functions:**
+
+```javascript
+// Initialize Supabase client with priority order
+const initializeSupabase = () => {
+  // 1. Check localStorage
+  const stored = localStorage.getItem('supabaseConfig');
+  if (stored) {
+    try {
+      const config = JSON.parse(stored);
+      if (config.supabaseUrl && config.supabaseAnonKey) {
+        setConfigSource('localStorage');
+        return window.supabase.createClient(
+          config.supabaseUrl,
+          config.supabaseAnonKey
+        );
+      }
+    } catch (error) {
+      console.error('Invalid localStorage config:', error);
+      localStorage.removeItem('supabaseConfig');
+    }
+  }
+  
+  // 2. Check config.js
+  if (window.SUPABASE_CONFIG?.url && window.SUPABASE_CONFIG?.anonKey) {
+    setConfigSource('config.js');
+    return window.supabase.createClient(
+      window.SUPABASE_CONFIG.url,
+      window.SUPABASE_CONFIG.anonKey
+    );
+  }
+  
+  // 3. No configuration
+  setConfigSource('none');
+  return null;
+};
+
+// Save configuration to localStorage
+const saveConfiguration = () => {
+  // Validate inputs
+  if (!supabaseUrl || !supabaseAnonKey) {
+    alert('Please enter both Supabase URL and Anon Key');
+    return;
+  }
+  
+  // Validate URL format
+  try {
+    new URL(supabaseUrl);
+  } catch (error) {
+    alert('Invalid Supabase URL format');
+    return;
+  }
+  
+  // Validate key format (should start with eyJ)
+  if (!supabaseAnonKey.startsWith('eyJ')) {
+    alert('Invalid Anon Key format. Should start with "eyJ"');
+    return;
+  }
+  
+  // Save to localStorage
+  const config = {
+    supabaseUrl,
+    supabaseAnonKey
+  };
+  localStorage.setItem('supabaseConfig', JSON.stringify(config));
+  
+  // Reinitialize Supabase client
+  supabase = initializeSupabase();
+  
+  alert('Configuration saved successfully!');
+};
+
+// Test connection
+const testConnection = async () => {
+  setIsTestingConnection(true);
+  setConnectionTestResult(null);
+  
+  try {
+    // Create temporary client with entered credentials
+    const testClient = window.supabase.createClient(
+      supabaseUrl,
+      supabaseAnonKey
+    );
+    
+    // Try to query sessions table
+    const { data, error } = await testClient
+      .from('sessions')
+      .select('count')
+      .limit(1);
+    
+    if (error) throw error;
+    
+    setConnectionTestResult('success');
+    alert('Connection successful! ✓');
+  } catch (error) {
+    setConnectionTestResult('error');
+    alert(`Connection failed: ${error.message}`);
+  } finally {
+    setIsTestingConnection(false);
+  }
+};
+
+// Clear configuration
+const clearConfiguration = () => {
+  if (!confirm('Clear saved configuration? This will revert to config.js if available.')) {
+    return;
+  }
+  
+  localStorage.removeItem('supabaseConfig');
+  setSupabaseUrl('');
+  setSupabaseAnonKey('');
+  
+  // Reinitialize Supabase client
+  supabase = initializeSupabase();
+  
+  alert('Configuration cleared');
+};
+
+// Load current configuration into form
+const loadCurrentConfiguration = () => {
+  const stored = localStorage.getItem('supabaseConfig');
+  if (stored) {
+    try {
+      const config = JSON.parse(stored);
+      setSupabaseUrl(config.supabaseUrl || '');
+      setSupabaseAnonKey(config.supabaseAnonKey || '');
+    } catch (error) {
+      console.error('Error loading config:', error);
+    }
+  } else if (window.SUPABASE_CONFIG) {
+    // Show config.js values as placeholders
+    setSupabaseUrl(window.SUPABASE_CONFIG.url || '');
+    setSupabaseAnonKey(window.SUPABASE_CONFIG.anonKey || '');
+  }
+};
+```
+
+**Error Handling:**
+
+- Invalid URL format: Show error message
+- Invalid key format: Show error message
+- Connection test failure: Display specific error
+- localStorage quota exceeded: Warn user
+- Corrupted localStorage data: Clear and reset
+
+**Security Considerations:**
+
+- Anon key is public by design (Supabase RLS handles security)
+- Still mask in UI to prevent shoulder surfing
+- No encryption needed for localStorage (public key)
+- Clear instructions about what these credentials are
+
+**User Experience:**
+
+1. **First Time Setup:**
+   - User opens settings
+   - Sees "Not configured" status
+   - Enters credentials
+   - Tests connection
+   - Saves configuration
+   - Collaborative mode becomes available
+
+2. **Updating Configuration:**
+   - User opens settings
+   - Sees current source (localStorage or config.js)
+   - Can override config.js by entering new values
+   - Can clear localStorage to revert to config.js
+
+3. **Troubleshooting:**
+   - Test connection button provides immediate feedback
+   - Clear error messages for common issues
+   - Link to setup documentation
 
 ## Implementation Details for New Features
 

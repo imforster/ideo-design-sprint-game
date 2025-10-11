@@ -321,6 +321,89 @@
         const [joinCode, setJoinCode] = useState("");
         const [participants, setParticipants] = useState([]);
         const [isCollaborative, setIsCollaborative] = useState(false);
+        const [participantId, setParticipantId] = useState(null);
+
+        // Session persistence helpers
+        const saveSessionToStorage = (sessionData) => {
+          try {
+            localStorage.setItem('ideoGameSession', JSON.stringify(sessionData));
+          } catch (error) {
+            console.error('Failed to save session to localStorage:', error);
+          }
+        };
+
+        const loadSessionFromStorage = () => {
+          try {
+            const stored = localStorage.getItem('ideoGameSession');
+            return stored ? JSON.parse(stored) : null;
+          } catch (error) {
+            console.error('Failed to load session from localStorage:', error);
+            return null;
+          }
+        };
+
+        const clearSessionFromStorage = () => {
+          try {
+            localStorage.removeItem('ideoGameSession');
+          } catch (error) {
+            console.error('Failed to clear session from localStorage:', error);
+          }
+        };
+
+        // Restore session on mount
+        useEffect(() => {
+          const restoreSession = async () => {
+            const stored = loadSessionFromStorage();
+            if (!stored || !supabase) return;
+
+            try {
+              // Verify session still exists
+              const { data, error } = await supabase
+                .from("session_data")
+                .select("*")
+                .eq("session_id", stored.sessionId)
+                .single();
+
+              if (error || !data) {
+                // Session no longer exists, clear storage
+                clearSessionFromStorage();
+                return;
+              }
+
+              // Restore session state
+              setSessionId(stored.sessionId);
+              setIsHost(stored.isHost);
+              setUserName(stored.userName);
+              setParticipantId(stored.participantId);
+              setIsCollaborative(true);
+              setParticipants(data.data.participants || []);
+              setGameMode("collaborative"); // Always set collaborative mode
+
+              // Sync game state
+              setCurrentPhase(data.data.currentPhase);
+              setChallenge(data.data.challenge);
+              setIdeas(data.data.allIdeas || []);
+              setSelectedIdeas(data.data.selectedIdeas || []);
+              setPrototype(data.data.prototype);
+              setPrototypeImages(data.data.prototypeImages || []);
+              setHmwStatement(data.data.hmwStatement || "");
+              setIterationNotes(data.data.iterationNotes || "");
+              setTimerDuration(data.data.timerDuration);
+
+              // Set game state based on whether challenge exists
+              if (data.data.challenge) {
+                setGameState("playing");
+              } else {
+                setGameState("intro"); // Back to intro but with session active
+              }
+            } catch (error) {
+              console.error("Error restoring session:", error);
+              clearSessionFromStorage();
+            }
+          };
+
+          restoreSession();
+        }, []);
 
         // Import/Export state
         const [importPreviewData, setImportPreviewData] = useState([]);
@@ -690,7 +773,16 @@
             setSessionId(session.id);
             setIsHost(true);
             setIsCollaborative(true);
+            setParticipantId(hostId);
             setParticipants([{ id: hostId, name: userName, isHost: true }]);
+
+            // Save to localStorage for persistence
+            saveSessionToStorage({
+              sessionId: session.id,
+              isHost: true,
+              userName: userName,
+              participantId: hostId
+            });
           } catch (error) {
             console.error("Error creating session:", error);
             alert("Failed to create session. Please try again.");
@@ -717,10 +809,10 @@
               return;
             }
 
-            const participantId = crypto.randomUUID();
+            const newParticipantId = crypto.randomUUID();
             const updatedParticipants = [
               ...data.data.participants,
-              { id: participantId, name: userName, isHost: false },
+              { id: newParticipantId, name: userName, isHost: false },
             ];
 
             const updatedData = {
@@ -736,6 +828,7 @@
             setSessionId(code);
             setIsHost(false);
             setIsCollaborative(true);
+            setParticipantId(newParticipantId);
             setParticipants(updatedParticipants);
 
             // Sync local state with session
@@ -753,6 +846,14 @@
               setGameState("playing");
               setGameMode("collaborative");
             }
+
+            // Save to localStorage for persistence
+            saveSessionToStorage({
+              sessionId: code,
+              isHost: false,
+              userName: userName,
+              participantId: newParticipantId
+            });
           } catch (error) {
             console.error("Error joining session:", error);
             alert("Failed to join session. Please try again.");
@@ -793,6 +894,46 @@
 
           if (isCollaborative) {
             await updateSessionData({ allIdeas: updatedIdeas });
+          }
+        };
+
+        const leaveSession = async () => {
+          if (!sessionId || !supabase) return;
+
+          try {
+            // Remove participant from session
+            const { data } = await supabase
+              .from("session_data")
+              .select("data")
+              .eq("session_id", sessionId)
+              .single();
+
+            if (data) {
+              const updatedParticipants = data.data.participants.filter(
+                p => p.id !== participantId
+              );
+
+              await supabase
+                .from("session_data")
+                .update({ 
+                  data: { ...data.data, participants: updatedParticipants }
+                })
+                .eq("session_id", sessionId);
+            }
+          } catch (error) {
+            console.error("Error leaving session:", error);
+          } finally {
+            // Clear local state
+            setSessionId(null);
+            setIsHost(false);
+            setIsCollaborative(false);
+            setParticipantId(null);
+            setParticipants([]);
+            clearSessionFromStorage();
+            
+            // Reset to intro
+            setGameState("intro");
+            setGameMode(null);
           }
         };
 
@@ -884,6 +1025,7 @@
               hmwStatement: "",
               iterationNotes: "",
               timer: timerDuration,
+              gameState: "playing",
             });
           }
         };
@@ -2046,9 +2188,17 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
 
                   {isCollaborative && (
                     <div className="bg-green-50 rounded-xl p-6 mb-8">
-                      <h3 className="font-bold text-xl mb-4 text-green-800">
-                        Session: {sessionId}
-                      </h3>
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="font-bold text-xl text-green-800">
+                          Session: {sessionId}
+                        </h3>
+                        <button
+                          onClick={leaveSession}
+                          className="text-red-600 hover:text-red-700 text-sm font-medium px-3 py-1 hover:bg-red-50 rounded-lg transition-all"
+                        >
+                          Leave Session
+                        </button>
+                      </div>
 
                       <div className="mb-4">
                         <h4 className="font-semibold text-gray-700 mb-2">
@@ -2062,20 +2212,33 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                                 participant.isHost
                                   ? "bg-green-200 text-green-800"
                                   : "bg-gray-200 text-gray-700"
-                              }`}
+                              } ${participant.id === participantId ? "ring-2 ring-green-500" : ""}`}
                             >
                               {participant.name}{" "}
                               {participant.isHost && "(Host)"}
+                              {participant.id === participantId && " (You)"}
                             </div>
                           ))}
                         </div>
                       </div>
 
                       {isHost && (
-                        <p className="text-sm text-green-700">
-                          Share this session code with participants:{" "}
-                          <strong>{sessionId}</strong>
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm text-green-700">
+                            Share this session code:{" "}
+                            <strong className="font-mono bg-white px-2 py-1 rounded">{sessionId}</strong>
+                          </p>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(sessionId);
+                              alert("Session code copied to clipboard!");
+                            }}
+                            className="text-green-600 hover:text-green-700 p-1 hover:bg-green-100 rounded transition-all"
+                            title="Copy session code"
+                          >
+                            <Icons.Copy className="w-4 h-4" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}

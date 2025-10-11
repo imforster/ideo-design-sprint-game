@@ -16,6 +16,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <style>
       body {
         margin: 0;
@@ -85,14 +86,10 @@
     <script type="text/babel">
       const { useState, useEffect } = React;
 
-      // Supabase configuration
-      const SUPABASE_URL = "https://iyrrkpyulelvxrbvnjkt.supabase.co";
-      const SUPABASE_ANON_KEY =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5cnJrcHl1bGVsdnhyYnZuamt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwNDc1NjYsImV4cCI6MjA3NTYyMzU2Nn0.cP0Sg6aYVoEJbuDsGFT1yPT1TwRmKB7jjmkCxKJUkS0";
-
-      const supabase = window.supabase?.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY,
+      // Supabase configuration from external config
+      const supabase = window.SUPABASE_CONFIG && window.supabase?.createClient(
+        window.SUPABASE_CONFIG.url,
+        window.SUPABASE_CONFIG.anonKey,
       );
 
       // Lucide React icons as inline SVGs

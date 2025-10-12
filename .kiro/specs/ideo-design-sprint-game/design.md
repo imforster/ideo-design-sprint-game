@@ -203,10 +203,13 @@ The application renders different screens based on `gameState`:
 │  - Member Management                │
 ├─────────────────────────────────────┤
 │  Collaborative Setup (if collab)    │
-│  - Create Session (with name input) │
+│  - User Name Input                  │
+│  - Team Name Input (optional)       │
+│  - Create Session Button            │
 │  - Join Session (name + code)       │
 │  - Active Session Info              │
-│  - Participant List                 │
+│  - Team Name Display                │
+│  - Team Members List                │
 ├─────────────────────────────────────┤
 │  Game Info (Duration, Points)       │
 ├─────────────────────────────────────┤
@@ -596,6 +599,8 @@ interface SessionData {
     hmwTyper: string | null;      // Who's typing HMW
     draftPrototype: string;       // Real-time draft
     prototypeTyper: string | null; // Who's typing prototype
+    teamName: string;             // Team name (optional)
+    teamMembers: string[];        // Array of participant names
   }
 }
 ```
@@ -779,6 +784,17 @@ interface StoredSession {
 - [ ] Verify challenge appears in pool
 - [ ] Start game with custom challenge
 
+**Collaborative Mode:**
+- [ ] Configure Supabase credentials
+- [ ] Create session with team name
+- [ ] Join session from another browser/device
+- [ ] Verify team name displays in header
+- [ ] Verify all participants shown as team members
+- [ ] Complete collaborative sprint
+- [ ] Verify team info in exports (PDF, text, email)
+- [ ] Test session persistence (refresh page)
+- [ ] Test leave session functionality
+
 **Edge Cases:**
 - [ ] Try to start without mode selection
 - [ ] Try to start team mode without setup
@@ -787,6 +803,8 @@ interface StoredSession {
 - [ ] Submit short prototype description
 - [ ] Test timer expiration
 - [ ] Test browser back button behavior
+- [ ] Create collaborative session without team name
+- [ ] Join session with duplicate name
 
 ### Browser Testing Matrix
 
@@ -1022,6 +1040,91 @@ const handleTextChange = (e) => {
 - Draft persistence
 - Automatic cleanup on submission
 
+### Team Name and Members
+
+**Purpose:**
+Team name and members provide identity and recognition for collaborative sessions, making them feel more cohesive and ensuring all participants are acknowledged in exports.
+
+**Implementation:**
+
+**Session Creation with Team Name:**
+```javascript
+const createSession = async (userName, teamName) => {
+  const hostId = crypto.randomUUID();
+  
+  const initialData = {
+    // ... other session data
+    teamName: teamName.trim() || '',  // Optional team name
+    teamMembers: [userName],          // Host is first member
+    participants: [{ id: hostId, name: userName, isHost: true }]
+  };
+  
+  await supabase.from('session_data').insert({
+    session_id: session.id,
+    data: initialData
+  });
+};
+```
+
+**Automatic Member Registration:**
+```javascript
+const joinSession = async (code, userName) => {
+  // Fetch current session data
+  const { data } = await supabase
+    .from('session_data')
+    .select('*')
+    .eq('session_id', code)
+    .single();
+  
+  // Add to both participants and teamMembers
+  const updatedData = {
+    ...data.data,
+    participants: [...data.data.participants, newParticipant],
+    teamMembers: [...(data.data.teamMembers || []), userName]
+  };
+  
+  await supabase
+    .from('session_data')
+    .update({ data: updatedData })
+    .eq('session_id', code);
+};
+```
+
+**Display Strategy:**
+- **Session Header**: Team name displayed prominently above session code
+- **Playing Screen**: Team name shown in challenge header badge
+- **Participants Section**: Labeled as "Team Members" instead of "Participants"
+- **Completion Screen**: Team name and all members listed
+- **All Exports**: Team name and members included in PDF, text, email, and clipboard
+
+**Real-Time Sync:**
+```javascript
+// Subscribe to team name changes
+useEffect(() => {
+  const subscription = supabase
+    .channel('session_changes')
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'session_data',
+      filter: `session_id=eq.${sessionId}`
+    }, (payload) => {
+      setTeamName(payload.new.data.teamName || '');
+      // ... other state updates
+    })
+    .subscribe();
+  
+  return () => subscription.unsubscribe();
+}, [sessionId]);
+```
+
+**UI Components:**
+- Team name input field (host only, during session creation)
+- Helper text: "Team members will be automatically registered when they join the session"
+- Team name display in session header (large, bold)
+- Team members list with colored badges
+- Team info in all export formats
+
 ### Participant Management
 
 **Join Flow:**
@@ -1040,12 +1143,17 @@ const joinSession = async (code, name) => {
   const participantId = crypto.randomUUID();
   const participant = { id: participantId, name, isHost: false };
   
-  // 3. Add to session
+  // 3. Add to session (including teamMembers)
   await supabase
     .from('session_data')
     .update({
       data: {
         ...currentData,
+        participants: [...currentData.participants, participant],
+        teamMembers: [...(currentData.teamMembers || []), name]
+      }
+    })
+    .eq('session_id', code);
         participants: [...currentData.participants, participant]
       }
     })

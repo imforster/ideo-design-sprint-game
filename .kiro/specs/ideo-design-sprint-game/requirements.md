@@ -384,3 +384,25 @@ The game serves as both a learning tool for individuals new to design thinking a
 1. localStorage configuration (highest priority)
 2. config.js configuration
 3. No configuration (collaborative mode disabled)
+
+### Requirement 24: Team Name and Members in Collaborative Mode
+
+**User Story:** As a collaborative session host, I want to set a team name and have team members automatically registered, so that our collaborative session has a clear identity and all participants are recognized as team members in exports and displays.
+
+#### Acceptance Criteria
+
+1. WHEN creating a collaborative session THEN the system SHALL display an optional "Team Name" input field
+2. WHEN the host enters a team name THEN the system SHALL save it with the session data
+3. WHEN a participant joins a session THEN the system SHALL automatically add their name to the teamMembers array
+4. WHEN the session is active THEN the system SHALL display the team name prominently in the session header
+5. WHEN no team name is set THEN the system SHALL display "Collaborative" as the default label
+6. WHEN displaying the session during gameplay THEN the system SHALL show the team name in the challenge header badge
+7. WHEN displaying participants THEN the system SHALL label the section as "Team Members" instead of "Participants"
+8. WHEN the completion screen is displayed THEN the system SHALL show the team name and list all team members
+9. WHEN results are exported to PDF THEN the system SHALL include the team name and team members list
+10. WHEN results are exported to text THEN the system SHALL include the team name and team members list
+11. WHEN results are emailed THEN the system SHALL include the team name and team members in the email body
+12. WHEN results are copied to clipboard THEN the system SHALL include the team name in the summary
+13. WHEN the session is restored from localStorage THEN the system SHALL restore the team name
+14. WHEN real-time sync occurs THEN the system SHALL synchronize the team name across all participants
+15. WHEN the team name input is displayed THEN it SHALL include helper text: "Team members will be automatically registered when they join the session"

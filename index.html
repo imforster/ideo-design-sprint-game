@@ -7,11 +7,11 @@
   <title>IDEO Design Sprint Game</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="console.log('Supabase script loaded'); console.log('window.supabase:', window.supabase); console.log('Keys:', Object.keys(window.supabase)); console.log('createClient:', window.supabase.createClient); window._supabaseLib = window.supabase; console.log('Saved to window._supabaseLib');" onerror="console.error('Failed to load Supabase script');"></script>
+  <script src="config.js" onload="console.log('config.js loaded');" onerror="console.error('Failed to load config.js');"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     body {
       margin: 0;
@@ -81,13 +81,25 @@
   <div id="root"></div>
 
   <script type="text/babel">
+    console.log('Babel script starting...');
+    console.log('window._supabaseLib at script start:', window._supabaseLib);
+    console.log('typeof window._supabaseLib:', typeof window._supabaseLib);
+    
     const { useState, useEffect } = React;
 
-    // Supabase configuration from external config
-    const supabase = window.SUPABASE_CONFIG && window.supabase?.createClient(
-      window.SUPABASE_CONFIG.url,
-      window.SUPABASE_CONFIG.anonKey,
-    );
+    // Supabase configuration - initialize if config exists
+    let supabase = null;
+    if (window.SUPABASE_CONFIG && window._supabaseLib && window._supabaseLib.createClient) {
+      try {
+        supabase = window._supabaseLib.createClient(
+          window.SUPABASE_CONFIG.url,
+          window.SUPABASE_CONFIG.anonKey,
+        );
+        console.log('Supabase client initialized successfully');
+      } catch (error) {
+        console.error('Error initializing Supabase:', error);
+      }
+    }
 
     // Lucide React icons as inline SVGs
     const Icons = {
@@ -430,15 +442,38 @@
       // Challenge JSON schema constant
       const CHALLENGE_SCHEMA_VERSION = "1.0";
 
-      // This function is no longer needed - configuration handled by config.js
+      // Initialize or reinitialize Supabase client
       const initializeSupabase = () => {
-        // Configuration is now static from config.js
+        try {
+          // Check localStorage first
+          const storedConfig = localStorage.getItem('supabaseConfig');
+          if (storedConfig) {
+            const config = JSON.parse(storedConfig);
+            if (config.supabaseUrl && config.supabaseAnonKey && window._supabaseLib) {
+              supabase = window._supabaseLib.createClient(
+                config.supabaseUrl,
+                config.supabaseAnonKey
+              );
+              setConfigSource("localStorage");
+              setSupabaseUrl(config.supabaseUrl);
+              setSupabaseAnonKey(config.supabaseAnonKey);
+              console.log('Supabase initialized from localStorage');
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('Error loading from localStorage:', error);
+        }
+
+        // Fall back to config.js
         if (window.SUPABASE_CONFIG?.url && window.SUPABASE_CONFIG?.anonKey) {
           setConfigSource("config.js");
           setSupabaseUrl(window.SUPABASE_CONFIG.url);
           setSupabaseAnonKey(window.SUPABASE_CONFIG.anonKey);
+          console.log('Using config.js configuration');
         } else {
           setConfigSource("none");
+          console.log('No Supabase configuration found');
         }
       };
 
@@ -517,15 +552,29 @@
           setTestingConnection(true);
           setConnectionMessage("Testing connection...");
 
+          // Debug logging
+          console.log('window.supabase:', window.supabase);
+          console.log('typeof window.supabase:', typeof window.supabase);
+          if (window.supabase) {
+            console.log('window.supabase.createClient:', window.supabase.createClient);
+            console.log('typeof window.supabase.createClient:', typeof window.supabase.createClient);
+          }
+
           // Check if Supabase library is loaded
-          if (!window.supabase || !window.supabase.createClient) {
-            setConnectionMessage("❌ Supabase library not loaded. Please refresh the page.");
+          if (!window._supabaseLib) {
+            setConnectionMessage("❌ Supabase library not loaded. Please refresh the page and wait a few seconds.");
+            setTestingConnection(false);
+            return;
+          }
+
+          if (typeof window._supabaseLib.createClient !== 'function') {
+            setConnectionMessage("❌ Supabase createClient not found. Library structure may have changed.");
             setTestingConnection(false);
             return;
           }
 
           // Create temporary client
-          const testClient = window.supabase.createClient(
+          const testClient = window._supabaseLib.createClient(
             supabaseUrl.trim(),
             supabaseAnonKey.trim()
           );
@@ -570,9 +619,27 @@
         }
       };
 
-      // Initialize Supabase on mount
+      // Initialize Supabase on mount with retry for library loading
       useEffect(() => {
-        initializeSupabase();
+        console.log('Initializing Supabase...');
+        console.log('window.supabase:', window.supabase);
+        console.log('typeof window.supabase:', typeof window.supabase);
+        console.log('window.supabase.createClient:', window.supabase?.createClient);
+        console.log('window.SUPABASE_CONFIG available:', !!window.SUPABASE_CONFIG);
+        
+        const tryInitialize = () => {
+          if (typeof window._supabaseLib !== 'undefined' && window._supabaseLib && typeof window._supabaseLib.createClient === 'function') {
+            console.log('Supabase library loaded, initializing...');
+            initializeSupabase();
+          } else {
+            console.log('Supabase library not ready, retrying in 100ms...');
+            console.log('  window._supabaseLib:', window._supabaseLib);
+            console.log('  window._supabaseLib.createClient:', window._supabaseLib?.createClient);
+            setTimeout(tryInitialize, 100);
+          }
+        };
+        
+        tryInitialize();
       }, []);
 
       const TOPICS = [
@@ -2301,7 +2368,10 @@ Top Concept: ${selectedIdeas[0] || "N/A"}`;
                   <button
                     onClick={() => {
                       setShowSettings(true);
-                      loadCurrentConfiguration();
+                      // Small delay to ensure Supabase library is loaded
+                      setTimeout(() => {
+                        loadCurrentConfiguration();
+                      }, 100);
                     }}
                     className="p-3 hover:bg-gray-100 rounded-lg transition-all"
                   >

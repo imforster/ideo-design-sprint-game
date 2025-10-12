@@ -72,6 +72,14 @@ Real-time collaboration for:
 - Multi-location sessions
 - Asynchronous participation
 
+**Team Features:**
+
+- Set team name when creating session
+- Automatic team member registration
+- Team name displayed in session header and during play
+- All team members listed in exports (PDF, email, text)
+- Real-time participant awareness
+
 **Configuration Options:**
 
 - **Settings UI** (Recommended): Configure directly in the app via Settings → Collaborative Mode Configuration

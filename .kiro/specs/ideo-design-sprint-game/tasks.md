@@ -323,3 +323,44 @@
   - Test with both (localStorage should win)
   - Verify collaborative mode enables/disables correctly
   - _Requirements: All 23.x requirements_
+
+- [x] 12. Add team name and team members to collaborative mode
+  - Add teamName and teamMembers state to collaborative session data
+  - Update session creation to include team information
+  - Display team name and members in collaborative session UI
+  - _Requirements: Similar to team mode functionality_
+
+- [x] 12.1 Add team setup UI to collaborative mode
+  - Add team name input field in collaborative session setup (host only)
+  - Team members are automatically registered when they join the session
+  - Display team name prominently in session header
+  - Style consistently with team mode UI
+  - Make responsive for mobile devices
+  - _Requirements: UI consistency with team mode, automatic member registration_
+
+- [x] 12.2 Update session data structure
+  - Add teamName field to session_data
+  - Add teamMembers array to session_data
+  - Update createSession to save team information
+  - Update joinSession to display team information
+  - _Requirements: Data persistence_
+
+- [x] 12.3 Sync team information across participants
+  - Update real-time subscription to sync team data
+  - Display team name in session header
+  - Show all team members in participants section
+  - Update session restoration to include team data
+  - _Requirements: Real-time synchronization_
+
+- [x] 12.4 Include team information in exports
+  - Add team name to PDF export
+  - Add team members list to PDF export
+  - Include team info in email exports
+  - Display team information on completion screen
+  - _Requirements: Export functionality_
+
+- [x] 12.5 Update documentation
+  - Document team setup in collaborative mode
+  - Add screenshots of team setup UI
+  - Update FACILITATOR_GUIDE.md with team collaboration features
+  - _Requirements: Documentation completeness_

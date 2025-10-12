@@ -722,6 +722,123 @@ Also think: What's the smallest version we could test?"
 
 ## Remote Facilitation
 
+### Collaborative Mode for Remote Teams
+
+**What is Collaborative Mode?**
+
+Collaborative Mode enables real-time synchronization between remote participants working on the same design sprint. Unlike screen sharing where one person drives, each participant can contribute directly and see updates instantly.
+
+**Key Features:**
+- Real-time idea synchronization
+- Shared text editing for HMW statements and prototypes
+- Team name and automatic member registration
+- Session persistence across page refreshes
+- Live participant awareness
+- Synchronized phase progression
+
+**When to Use Collaborative Mode:**
+- Remote teams working together
+- Distributed workshop participants
+- Asynchronous collaboration needs
+- Teams across time zones
+- Large groups needing parallel sessions
+
+**Setting Up Collaborative Mode:**
+
+1. **Configure Supabase (One-Time Setup):**
+   - Open Settings (gear icon)
+   - Find "Collaborative Mode Configuration"
+   - Enter Supabase URL and Anon Key
+   - Click "Test Connection" to verify
+   - Click "Save Configuration"
+   - Configuration persists in browser
+
+2. **Creating a Session (Host):**
+   - Select "Collaborative" mode on intro screen
+   - Enter your name
+   - Enter team name (optional but recommended)
+   - Click "Create Session"
+   - Share the session code with participants
+   - Team members automatically registered as they join
+
+3. **Joining a Session (Participants):**
+   - Select "Collaborative" mode
+   - Enter your name
+   - Enter session code from host
+   - Click "Join Session"
+   - Automatically added to team members list
+
+**Team Name and Members:**
+- Host can set a team name when creating session
+- Team name displays prominently in session header
+- All participants automatically become team members
+- Team members shown with colored badges
+- Your name highlighted with "(You)" indicator
+- Team info included in all exports (PDF, email, text)
+
+**Facilitating Collaborative Sessions:**
+
+**As Host:**
+- You control when the game starts
+- You select which ideas to advance
+- You can see all participants in real-time
+- Team name appears in session header and during play
+- All team members listed in exports
+
+**Real-Time Collaboration:**
+- Phase 0 (Empathize): All participants can see and edit HMW statement
+- Phase 1 (Ideate): Each participant submits ideas independently
+- Phase 2 (Select): Host selects top 3 ideas (all see selections)
+- Phase 3 (Prototype): All participants can see and edit prototype description
+- Phase 4 (Iterate): All participants can contribute to iteration notes
+
+**Typing Indicators:**
+- Shows "[Name] is typing..." when someone is editing
+- Prevents confusion about who's contributing
+- Updates in real-time across all participants
+
+**Session Persistence:**
+- Sessions persist across page refreshes
+- Participants can close browser and rejoin
+- Progress saved automatically
+- No data lost if someone disconnects
+
+**Best Practices for Collaborative Mode:**
+
+1. **Set Team Name:** Always set a meaningful team name for better organization
+2. **Clear Communication:** Use video call alongside the game
+3. **Assign Roles:** Designate host before starting
+4. **Share Code Early:** Send session code via chat/email
+5. **Test Connection:** Have participants join 5 minutes early
+6. **Monitor Participants:** Watch participant count to ensure everyone joined
+7. **Celebrate Team:** Acknowledge all team members in debrief
+8. **Export Together:** Review team results with all members present
+
+**Troubleshooting Collaborative Mode:**
+
+**Session Code Not Working:**
+- Verify code was copied correctly
+- Check Supabase configuration
+- Ensure host created session successfully
+- Try creating new session
+
+**Participant Can't Join:**
+- Verify they have Supabase configured
+- Check session code is correct
+- Ensure they entered their name
+- Try refreshing page
+
+**Changes Not Syncing:**
+- Check internet connection
+- Verify all participants in same session
+- Refresh page to restore connection
+- Check Supabase service status
+
+**Team Name Not Showing:**
+- Host must set team name when creating session
+- Refresh page to see updated team name
+- Check real-time sync is working
+
 ### Technical Setup
 
 **Before Workshop:**
@@ -731,6 +848,8 @@ Also think: What's the smallest version we could test?"
 - Test game in shared screen
 - Verify participants can see clearly
 - Test image upload if demonstrating
+- Configure Supabase for collaborative mode
+- Test session creation and joining
 
 **Platform Recommendations:**
 - Zoom: Best for screen sharing
